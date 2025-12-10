@@ -1,0 +1,300 @@
+/* Layout Simplificado e Limpo */
+
+.container {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 15px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.form {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 25px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Seções */
+.section {
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sectionTitle {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #444;
+}
+
+/* Linhas horizontais de campos */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: start; /* Garante alinhamento superior */
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.row:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: repeat(2, 1fr); /* Duas colunas em telas médias */
+  }
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
+  }
+}
+
+/* Campos individuais */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none; /* Impede que os campos se ajustem automaticamente */
+  width: 100%; /* Garante que os campos ocupem toda a coluna */
+  min-width: 0; /* Evita que os campos ultrapassem os limites */
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #555;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
+.input,
+.select {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #333;
+  background-color: #fff;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+/* Grids para H4 e H1 */
+.gridH4 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  width: 100%;
+}
+
+.gridH1 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.gridH4 .field,
+.gridH1 .field {
+  min-width: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.gridH4 .label,
+.gridH1 .label {
+  min-width: auto;
+  font-size: 0.85rem;
+  text-align: left;
+  color: #666;
+}
+
+.gridH4 .input,
+.gridH1 .input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+/* Botão */
+.button {
+  display: block;
+  margin: 20px auto 0;
+  width: 100%;
+  max-width: 300px;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #4CAF50;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #45a049;
+}
+
+.button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Mensagens */
+.message {
+  padding: 12px;
+  border-radius: 4px;
+  margin-top: 15px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.messageSuccess {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.messageError {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .form {
+    padding: 20px;
+  }
+  
+  .row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .field {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .label {
+    text-align: left;
+    min-width: 50px;
+  }
+}
+
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: repeat(2, 1fr); /* Duas colunas em telas médias */
+  }
+
+  .gridH4, .gridH1 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 8px;
+  }
+  
+  .form {
+    padding: 15px;
+  }
+  
+  .gridH4 {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  
+  .gridH1 {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+  }
+  
+  .sectionTitle {
+    font-size: 0.95rem;
+  }
+  
+  .label {
+    font-size: 0.85rem;
+  }
+  
+  .input, .select {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form {
+    padding: 10px;
+  }
+
+  .sectionTitle {
+    font-size: 0.9rem;
+  }
+
+  .input, .select {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .form {
+    padding: 12px;
+  }
+  
+  .gridH4 {
+    grid-template-columns: 1fr;
+  }
+  
+  .gridH1 {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  }
+  
+  .button {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .section {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+  }
+}

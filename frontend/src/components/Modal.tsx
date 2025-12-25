@@ -1,5 +1,4 @@
-// frontend/src/components/Modal.tsx
-import styles from './Modal.module.css';
+import styles from '../css/Modal.module.css';
 
 interface ModalProps {
     isOpen: boolean;

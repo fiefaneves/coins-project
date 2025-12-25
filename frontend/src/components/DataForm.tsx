@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import styles from './DataForm.module.css';
-import { Modal } from './Modal'; // Importando o Modal
+import styles from '../css/DataForm.module.css';
+import { Modal } from './Modal';
 
 // Definição dos tipos do formulário
 type FormData = {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import styles from './Dashboard.module.css';
-import { Modal } from './Modal'; // Importando o componente Modal
+import styles from '../css/Dashboard.module.css';
+import { Modal } from './Modal';
 
 // Definição dos tipos de dados que vêm do Backend
 interface Ponto {

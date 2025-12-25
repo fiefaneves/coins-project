@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from './Login.module.css'; // Importa o NOVO CSS
+import styles from '../css/Login.module.css';
 
 interface LoginProps {
   onLoginSuccess: (token: string) => void;
@@ -17,10 +17,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
     setErro('');
     setIsLoading(true); // 1. Começa a carregar (bloqueia o botão)
 
-    try {
-      // Simula um pequeno delay para ver o efeito de loading (pode remover depois)
-      // await new Promise(resolve => setTimeout(resolve, 1000)); 
-      
+    try {     
       const response = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

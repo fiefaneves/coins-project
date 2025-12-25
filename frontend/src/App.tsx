@@ -10,7 +10,8 @@ type Screen = 'login' | 'dashboard' | 'form' | 'analise';
 function App() {
   const [token, setToken] = useState<string | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
-
+  const [editingId, setEditingId] = useState<number | null>(null);
+  
   // Verificar login ao iniciar
   useEffect(() => {
     const tokenSalvo = localStorage.getItem('user_token');
@@ -34,6 +35,16 @@ function App() {
     setCurrentScreen('login');
   };
 
+  const handleEditRequest = (id: number) => {
+    setEditingId(id);
+    setCurrentScreen('form');
+  };
+
+  const handleNewRequest = () => {
+    setEditingId(null);
+    setCurrentScreen('form');
+  };
+
   // Função para adicionar botão "Voltar" no DataForm
   const renderScreen = () => {
     switch (currentScreen) {
@@ -43,8 +54,12 @@ function App() {
       case 'dashboard':
         return (
           <Dashboard 
-            onNavigate={(screen) => setCurrentScreen(screen)} 
-            userNome="Admin" // Depois podemos pegar do token
+            onNavigate={(screen) => {
+              if (screen === 'form') handleNewRequest(); // Se for novo, limpa ID
+              else setCurrentScreen(screen);
+            }}
+            onEdit={handleEditRequest} // Passa função de editar
+            userNome="Admin" // Exemplo de nome de usuário
           />
         );
       
@@ -53,20 +68,17 @@ function App() {
           <div>
             <div style={{ maxWidth: '1000px', margin: '1rem auto', padding: '0 20px' }}>
               <button 
-                onClick={() => setCurrentScreen('dashboard')}
-                style={{ 
-                  background: 'transparent', 
-                  border: '1px solid #ccc', 
-                  padding: '8px 16px', 
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  color: '#555'
+                onClick={() => {
+                    setEditingId(null); // Limpa ao voltar
+                    setCurrentScreen('dashboard');
                 }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#555', fontSize: '1rem' }}
               >
-                ← Voltar ao Início
+                ← Voltar
               </button>
             </div>
-            <DataForm />
+            {/* Passamos o ID para o DataForm saber se é edição ou novo */}
+            <DataForm editingId={editingId} onSuccess={() => setCurrentScreen('dashboard')} />
           </div>
         );
 
@@ -80,7 +92,7 @@ function App() {
         );
 
       default:
-        return <Login onLoginSuccess={handleLogin} />;
+        return null;
     }
   };
 

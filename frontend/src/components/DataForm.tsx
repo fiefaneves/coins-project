@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './DataForm.module.css';
+import { Modal } from './Modal'; // Importando o Modal
 
+// Definição dos tipos do formulário
 type FormData = {
     data: string;
     hora: string;
@@ -9,12 +11,17 @@ type FormData = {
     mensal: string;
     semanal: string;
     diario: string;
-    [key: string]: string; 
+    [key: string]: string; // Permite chaves dinâmicas como h4_00, h1_15...
 };
 
-export function DataForm() { // Mudado para export function nomeada (padrão melhor)
-    
-    // Estado inicial
+interface DataFormProps {
+    editingId?: number | null; // Se vier ID, é edição. Se null, é novo.
+    onSuccess?: () => void;    // Função para voltar ao dashboard
+}
+
+export function DataForm({ editingId, onSuccess }: DataFormProps) {
+
+    // Estado inicial com campos dinâmicos para H1
     const [formData, setFormData] = useState<FormData>({
         data: '',
         hora: '',
@@ -22,9 +29,9 @@ export function DataForm() { // Mudado para export function nomeada (padrão mel
         mensal: '',
         semanal: '',
         diario: '',
-        // H4
+        // Campos H4 iniciais
         h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
-        // H1 (inicializando vazio)
+        // Gera campos H1 (h1_00 até h1_23)
         ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
             [`h1_${i.toString().padStart(2, '0')}`, '']
         ))
@@ -34,64 +41,115 @@ export function DataForm() { // Mudado para export function nomeada (padrão mel
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);
 
+    // Estado para controlar o Modal de Confirmação
+    const [showSaveModal, setShowSaveModal] = useState(false);
+
+    // EFEITO: Carrega dados se for Edição
+    useEffect(() => {
+        if (editingId) {
+            setIsLoading(true);
+            const token = localStorage.getItem('user_token');
+            
+            axios.get(`http://localhost:3001/api/pontos/${editingId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(res => {
+                const dados = res.data;
+                // Converte tudo para string para o formulário não reclamar de null
+                const formatedData: any = { ...dados };
+                Object.keys(formatedData).forEach(key => {
+                    if (formatedData[key] === null) formatedData[key] = '';
+                    else formatedData[key] = String(formatedData[key]);
+                });
+                setFormData(formatedData);
+            })
+            .catch(err => {
+                console.error("Erro ao carregar:", err);
+                setMessage('Erro ao carregar dados para edição.');
+            })
+            .finally(() => setIsLoading(false));
+        }
+    }, [editingId]);
+    
+    // Atualiza os inputs conforme digita
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prevState => ({ ...prevState, [name]: value }));
     };
 
-    // Formata DD/MM/AAAA -> AAAA-MM-DD se necessário, ou mantém string para o backend tratar
-    const handleDateFormat = () => {
-        // A lógica de formatação idealmente deve ser feita no envio ou usar input date
-        // Mantendo sua lógica original visual:
-        if (formData.data.includes('-') && !formData.data.includes('/')) {
-             const [year, month, day] = formData.data.split('-');
-             setFormData(prev => ({ ...prev, data: `${day}/${month}/${year}` }));
+    // 1. Função chamada pelo FORMULÁRIO (Botão Salvar/Registrar)
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Se for Edição, perguntamos antes (Abre o Modal)
+        if (editingId) {
+            setShowSaveModal(true);
+        } else {
+            // Se for Novo, salva direto
+            processSave();
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // 2. Função REAL que manda para o Backend (chamada pelo Modal ou direto se for novo)
+    const processSave = async () => {
+        // Fecha o modal se estiver aberto
+        setShowSaveModal(false);
         setIsLoading(true);
         setMessage('');
         setIsError(false);
 
-        handleDateFormat();
-
         try {
-            // RECUPERAR O TOKEN DO LOGIN
-            const token = localStorage.getItem('user_token');
-
-            await axios.post('http://localhost:3001/api/pontos', formData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`, // Enviando o crachá!
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            setMessage('Dados registrados com sucesso!');
-            setIsError(false);
+            // Criamos uma cópia para enviar
+            const dadosParaEnviar = { ...formData };
             
-            // Resetar formulário (mas manter a moeda pode ser útil, aqui resetei tudo)
-            setFormData(prev => ({
-                ...prev,
-                data: '',
-                hora: '',
-                mensal: '', semanal: '', diario: '',
-                h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
-                ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
-                    [`h1_${i.toString().padStart(2, '0')}`, '']
-                ))
-            }));
+            // O Backend já tem helpers para tratar data (DD/MM/AAAA ou YYYY-MM-DD),
+            // então enviamos como está no input.
+
+            const token = localStorage.getItem('user_token');
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
+            if (editingId) {
+                // --- MODO EDIÇÃO (PUT) ---
+                await axios.put(`http://localhost:3001/api/pontos/${editingId}`, dadosParaEnviar, { headers });
+                
+                // Se tiver função de sucesso (voltar pro dashboard), chama ela
+                if (onSuccess) onSuccess(); 
+            } else {
+                // --- MODO CRIAÇÃO (POST) ---
+                await axios.post('http://localhost:3001/api/pontos', dadosParaEnviar, { headers });
+                
+                // Limpa o formulário e mostra mensagem de sucesso
+                setMessage('Nova entrada registrada com sucesso!');
+                setIsError(false);
+                
+                // Resetar formulário (mantendo estrutura base)
+                setFormData(prev => ({
+                    ...prev,
+                    data: '', hora: '', mensal: '', semanal: '', diario: '',
+                    h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
+                    ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
+                        [`h1_${i.toString().padStart(2, '0')}`, '']
+                    ))
+                }));
+            }
 
         } catch (error) {
             console.error('Erro:', error);
             setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
             setIsError(true);
         } finally {
-            setIsLoading(false);
+            // Só paramos o loading se NÃO formos sair da tela (onSuccess)
+            // Se for sair, o loading fica até o componente desmontar para evitar "piscar"
+            if (!onSuccess) {
+                setIsLoading(false);
+            }
         }
     };
 
+    // Arrays auxiliares para gerar os inputs no JSX
     const h4Hours = ['00', '04', '08', '12', '16', '20'];
     const h1Hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 
@@ -100,7 +158,9 @@ export function DataForm() { // Mudado para export function nomeada (padrão mel
             <div className={styles.formCard}>
                 
                 <header className={styles.header}>
-                    <h2 className={styles.title}>Nova Entrada de Mercado</h2>
+                    <h2 className={styles.title}>
+                        {editingId ? `Editando Entrada #${editingId}` : 'Nova Entrada de Mercado'}
+                    </h2>
                     <p className={styles.subtitle}>Preencha os dados técnicos para análise</p>
                 </header>
 
@@ -186,21 +246,31 @@ export function DataForm() { // Mudado para export function nomeada (padrão mel
                         </div>
                     </div>
 
-                    {/* Feedback e Botão */}
+                    {/* Feedback Visual */}
                     {message && (
                         <div className={`${styles.message} ${isError ? styles.messageError : styles.messageSuccess}`}>
                             {message}
                         </div>
                     )}
                     
+                    {/* Botão de Envio */}
                     <div className={styles.buttonContainer}>
                         <button type="submit" className={styles.button} disabled={isLoading}>
-                            {isLoading ? 'Salvando...' : 'Registrar Entrada'}
+                            {isLoading ? 'Processando...' : (editingId ? 'Salvar Alterações' : 'Registrar Entrada')}
                         </button>
                     </div>
-
                 </form>
             </div>
+
+            {/* --- COMPONENTE MODAL DE CONFIRMAÇÃO --- */}
+            <Modal 
+                isOpen={showSaveModal}
+                title="Salvar Alterações"
+                message={`Tem certeza que deseja aplicar as alterações na entrada #${editingId}?`}
+                type="confirm"
+                onConfirm={processSave}         // Ao confirmar, chama o processSave
+                onCancel={() => setShowSaveModal(false)}
+            />
         </div>
     );
 }

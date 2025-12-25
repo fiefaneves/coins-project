@@ -1,5 +1,3 @@
-// src/utils/helpers.js
-
 const formatarDataParaBanco = (dataStr) => {
     if (!dataStr) return null;
     if (dataStr.includes('/')) {

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import styles from './DataForm.module.css';
 
-// O Typescript dos campos
 type FormData = {
     data: string;
     hora: string;
@@ -10,11 +9,12 @@ type FormData = {
     mensal: string;
     semanal: string;
     diario: string;
-    [key: string]: string; // Para H4 e H1 dinâmicos
+    [key: string]: string; 
 };
 
-function DataForm() {
-    // 1. O estado (Tipado com o tipo que criamos acima)
+export function DataForm() { // Mudado para export function nomeada (padrão melhor)
+    
+    // Estado inicial
     const [formData, setFormData] = useState<FormData>({
         data: '',
         hora: '',
@@ -24,225 +24,183 @@ function DataForm() {
         diario: '',
         // H4
         h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
-        // H1
-        h1_00: '', h1_01: '', h1_02: '', h1_03: '', h1_04: '', h1_05: '',
-        h1_06: '', h1_07: '', h1_08: '', h1_09: '', h1_10: '', h1_11: '',
-        h1_12: '', h1_13: '', h1_14: '', h1_15: '', h1_16: '', h1_17: '',
-        h1_18: '', h1_19: '', h1_20: '', h1_21: '', h1_22: '', h1_23: '',
+        // H1 (inicializando vazio)
+        ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
+            [`h1_${i.toString().padStart(2, '0')}`, '']
+        ))
     });
 
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);
 
-    // 2. Função genérica para atualizar o estado
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
+        setFormData(prevState => ({ ...prevState, [name]: value }));
     };
 
-    // Adicionei uma função para formatar a data ao enviar o formulário
+    // Formata DD/MM/AAAA -> AAAA-MM-DD se necessário, ou mantém string para o backend tratar
     const handleDateFormat = () => {
-        if (formData.data.includes('-')) {
-            const [year, month, day] = formData.data.split('-');
-            setFormData(prevState => ({
-                ...prevState,
-                data: `${day}/${month}/${year}`
-            }));
+        // A lógica de formatação idealmente deve ser feita no envio ou usar input date
+        // Mantendo sua lógica original visual:
+        if (formData.data.includes('-') && !formData.data.includes('/')) {
+             const [year, month, day] = formData.data.split('-');
+             setFormData(prev => ({ ...prev, data: `${day}/${month}/${year}` }));
         }
     };
 
-    // 3. Função para ENVIAR os dados
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setMessage('');
         setIsError(false);
 
-        handleDateFormat(); // Formata a data antes de enviar
+        handleDateFormat();
 
         try {
-            await axios.post('http://localhost:3001/api/pontos', formData);
-            setMessage('Dados enviados com sucesso!');
+            // RECUPERAR O TOKEN DO LOGIN
+            const token = localStorage.getItem('user_token');
+
+            await axios.post('http://localhost:3001/api/pontos', formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`, // Enviando o crachá!
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setMessage('Dados registrados com sucesso!');
             setIsError(false);
-            // Limpar os campos após o envio
-            setFormData({
+            
+            // Resetar formulário (mas manter a moeda pode ser útil, aqui resetei tudo)
+            setFormData(prev => ({
+                ...prev,
                 data: '',
                 hora: '',
-                moeda: 'AUD',
-                mensal: '',
-                semanal: '',
-                diario: '',
+                mensal: '', semanal: '', diario: '',
                 h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
-                h1_00: '', h1_01: '', h1_02: '', h1_03: '', h1_04: '', h1_05: '',
-                h1_06: '', h1_07: '', h1_08: '', h1_09: '', h1_10: '', h1_11: '',
-                h1_12: '', h1_13: '', h1_14: '', h1_15: '', h1_16: '', h1_17: '',
-                h1_18: '', h1_19: '', h1_20: '', h1_21: '', h1_22: '', h1_23: '',
-            });
+                ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
+                    [`h1_${i.toString().padStart(2, '0')}`, '']
+                ))
+            }));
+
         } catch (error) {
-            console.error('Erro ao enviar dados:', error);
-            setMessage('Erro ao enviar dados. Tente novamente.');
+            console.error('Erro:', error);
+            setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
             setIsError(true);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Helpers para gerar os campos H4 e H1
     const h4Hours = ['00', '04', '08', '12', '16', '20'];
     const h1Hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 
-    // 4. Layout simplificado e vertical
     return (
         <div className={styles.container}>
-            <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formCard}>
                 
-                {/* Seção Principal */}
-                <div className={styles.section}>
-                    <div className={styles.row}>
-                        <div className={styles.field}>
-                            <label className={styles.label}>Data:</label>
-                            <input
-                                className={styles.input}
-                                type="text" // Alterado de "date" para "text" para suportar o formato personalizado
-                                name="data"
-                                value={formData.data}
-                                onChange={handleChange}
-                                placeholder="dd/mm/aaaa" // Adicionado placeholder para orientar o usuário
-                                required
-                            />
-                        </div>
-                        <div className={styles.field}>
-                            <label className={styles.label}>Hora:</label>
-                            <input
-                                className={styles.input}
-                                type="time"
-                                name="hora"
-                                value={formData.hora}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                    </div>
+                <header className={styles.header}>
+                    <h2 className={styles.title}>Nova Entrada de Mercado</h2>
+                    <p className={styles.subtitle}>Preencha os dados técnicos para análise</p>
+                </header>
 
-                    <div className={styles.row}>
-                        <div className={styles.field}>
-                            <label className={styles.label}>Moeda:</label>
-                            <select
-                                className={styles.input}
-                                name="moeda"
-                                value={formData.moeda}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="AUD">AUD</option>
-                                <option value="CAD">CAD</option>
-                                <option value="CHF">CHF</option>
-                                <option value="EUR">EUR</option>
-                                <option value="GBP">GBP</option>
-                                <option value="JPY">JPY</option>
-                                <option value="NZD">NZD</option>
-                                <option value="USD">USD</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Timeframes */}
-                <div className={styles.section}>
-                    <div className={styles.row}>
-                        <div className={styles.field}>
-                            <label className={styles.label}>Mensal:</label>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                name="mensal"
-                                value={formData.mensal}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.field}>
-                            <label className={styles.label}>Semanal:</label>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                name="semanal"
-                                value={formData.semanal}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.field}>
-                            <label className={styles.label}>Diário:</label>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                name="diario"
-                                value={formData.diario}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* H4 */}
-                <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>H4:</h3>
-                    <div className={styles.gridH4}>
-                        {h4Hours.map(hour => (
-                            <div key={`h4_${hour}`} className={styles.field}>
-                                <label className={styles.label}>{hour}:00:</label>
-                                <input
-                                    className={styles.input}
-                                    type="text"
-                                    name={`h4_${hour}`}
-                                    value={formData[`h4_${hour}`] as string}
-                                    onChange={handleChange}
-                                />
+                <form onSubmit={handleSubmit}>
+                    
+                    {/* Seção 1: Dados Gerais */}
+                    <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Informações Principais</h3>
+                        <div className={styles.row}>
+                            <div className={styles.field}>
+                                <label className={styles.label}>Moeda</label>
+                                <select className={styles.select} name="moeda" value={formData.moeda} onChange={handleChange}>
+                                    {['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'].map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                    ))}
+                                </select>
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* H1 */}
-                <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>H1:</h3>
-                    <div className={styles.gridH1}>
-                        {h1Hours.map(hour => (
-                            <div key={`h1_${hour}`} className={styles.field}>
-                                <label className={styles.label}>{hour}:00:</label>
-                                <input
-                                    className={styles.input}
-                                    type="text"
-                                    name={`h1_${hour}`}
-                                    value={formData[`h1_${hour}`] as string}
-                                    onChange={handleChange}
-                                />
+                            <div className={styles.field}>
+                                <label className={styles.label}>Data</label>
+                                <input className={styles.input} type="text" name="data" value={formData.data} onChange={handleChange} placeholder="DD/MM/AAAA" required />
                             </div>
-                        ))}
+                            <div className={styles.field}>
+                                <label className={styles.label}>Hora</label>
+                                <input className={styles.input} type="time" name="hora" value={formData.hora} onChange={handleChange} required />
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                {/* Mensagem e Botão */}
-                {message && (
-                    <div className={`${styles.message} ${isError ? styles.messageError : styles.messageSuccess}`}>
-                        {message}
+                    {/* Seção 2: Macro Tendência */}
+                    <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Macro Tendência (Pontos)</h3>
+                        <div className={styles.row}>
+                            <div className={styles.field}>
+                                <label className={styles.label}>Mensal</label>
+                                <input className={styles.input} type="text" name="mensal" value={formData.mensal} onChange={handleChange} placeholder="0.00000" />
+                            </div>
+                            <div className={styles.field}>
+                                <label className={styles.label}>Semanal</label>
+                                <input className={styles.input} type="text" name="semanal" value={formData.semanal} onChange={handleChange} placeholder="0.00000" />
+                            </div>
+                            <div className={styles.field}>
+                                <label className={styles.label}>Diário</label>
+                                <input className={styles.input} type="text" name="diario" value={formData.diario} onChange={handleChange} placeholder="0.00000" />
+                            </div>
+                        </div>
                     </div>
-                )}
-                
-                <button
-                    type="submit"
-                    className={styles.button}
-                    disabled={isLoading}
-                >
-                    {isLoading ? 'Enviando...' : 'Enviar Dados'}
-                </button>
 
-            </form>
+                    {/* Seção 3: H4 */}
+                    <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Estrutura H4</h3>
+                        <div className={styles.gridH4}>
+                            {h4Hours.map(hour => (
+                                <div key={`h4_${hour}`}>
+                                    <span className={styles.miniLabel}>{hour}:00</span>
+                                    <input
+                                        className={`${styles.input} ${styles.compactInput}`}
+                                        type="text"
+                                        name={`h4_${hour}`}
+                                        value={formData[`h4_${hour}`] as string}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Seção 4: H1 */}
+                    <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Estrutura H1</h3>
+                        <div className={styles.gridH1}>
+                            {h1Hours.map(hour => (
+                                <div key={`h1_${hour}`}>
+                                    <span className={styles.miniLabel}>{hour}h</span>
+                                    <input
+                                        className={`${styles.input} ${styles.compactInput}`}
+                                        type="text"
+                                        name={`h1_${hour}`}
+                                        value={formData[`h1_${hour}`] as string}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Feedback e Botão */}
+                    {message && (
+                        <div className={`${styles.message} ${isError ? styles.messageError : styles.messageSuccess}`}>
+                            {message}
+                        </div>
+                    )}
+                    
+                    <div className={styles.buttonContainer}>
+                        <button type="submit" className={styles.button} disabled={isLoading}>
+                            {isLoading ? 'Salvando...' : 'Registrar Entrada'}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
         </div>
     );
 }
-
-export default DataForm;

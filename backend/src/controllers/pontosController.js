@@ -1,4 +1,3 @@
-// src/controllers/pontosController.js
 const pool = require('../config/db');
 const { formatarDataParaBanco, toNum } = require('../utils/helpers');
 
@@ -78,4 +77,16 @@ const salvarPonto = async (req, res) => {
     }
 };
 
-module.exports = { salvarPonto };
+const listarPontos = async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, data_registro, hora_registro, moeda, tipo_entrada FROM entradas_mercado ORDER BY data_registro DESC, hora_registro DESC'
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao buscar dados' });
+    }
+};
+
+module.exports = { salvarPonto, listarPontos };

@@ -1,300 +1,202 @@
-/* Layout Simplificado e Limpo */
+/* DataForm.module.css - Versão Profissional */
 
 .container {
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 15px;
-  box-sizing: border-box;
-  width: 100%;
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.form {
-  background-color: #ffffff;
-  border-radius: 6px;
-  padding: 25px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  width: 100%;
-  box-sizing: border-box;
+.formCard {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* Sombra elegante */
+  padding: 2.5rem;
+  border: 1px solid #f0f0f0;
+}
+
+/* Cabeçalho do Formulário */
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.title {
+  font-size: 1.5rem;
+  color: #1a202c;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 
 /* Seções */
 .section {
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.section:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
+  background-color: #f8fafc; /* Fundo leve para separar blocos */
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e2e8f0;
 }
 
 .sectionTitle {
-  margin: 0 0 12px 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #444;
-}
-
-/* Linhas horizontais de campos */
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  align-items: start; /* Garante alinhamento superior */
-  margin-bottom: 15px;
-  width: 100%;
-}
-
-.row:last-child {
-  margin-bottom: 0;
-}
-
-@media (max-width: 768px) {
-  .row {
-    grid-template-columns: repeat(2, 1fr); /* Duas colunas em telas médias */
-  }
-}
-
-@media (max-width: 480px) {
-  .row {
-    grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
-  }
-}
-
-/* Campos individuais */
-.field {
+  color: #2d3748;
+  margin: 0 0 1.2rem 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: none; /* Impede que os campos se ajustem automaticamente */
-  width: 100%; /* Garante que os campos ocupem toda a coluna */
-  min-width: 0; /* Evita que os campos ultrapassem os limites */
+}
+
+.sectionTitle::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 16px;
+  background: #4a90e2; /* Detalhe azul na esquerda do título */
+  border-radius: 2px;
+}
+
+/* Grids de Layout */
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Campos */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #555;
-  white-space: nowrap;
-  min-width: 60px;
-  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a5568;
 }
 
 .input,
 .select {
-  flex: 1;
-  padding: 7px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  color: #333;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
   background-color: #fff;
-  transition: border-color 0.2s;
-  font-family: inherit;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input:focus,
 .select:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
-/* Grids para H4 e H1 */
+/* Inputs Específicos para Grids H1 e H4 (Mais compactos) */
+.compactInput {
+  padding: 8px;
+  text-align: center;
+  font-variant-numeric: tabular-nums; /* Melhora alinhamento de números */
+}
+
+/* Grids de Timeframes */
 .gridH4 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  width: 100%;
+  grid-template-columns: repeat(6, 1fr); /* 6 colunas exatas para H4 */
+  gap: 1rem;
 }
 
 .gridH1 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* Responsivo para H1 */
+  gap: 0.8rem;
 }
 
-.gridH4 .field,
-.gridH1 .field {
-  min-width: auto;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  width: 100%;
-}
-
-.gridH4 .label,
-.gridH1 .label {
-  min-width: auto;
-  font-size: 0.85rem;
-  text-align: left;
-  color: #666;
-}
-
-.gridH4 .input,
-.gridH1 .input {
-  width: 100%;
-  padding: 6px 10px;
-  font-size: 0.9rem;
-  box-sizing: border-box;
+/* Labels pequenas para os grids */
+.miniLabel {
+  font-size: 0.75rem;
+  color: #718096;
+  text-align: center;
+  margin-bottom: 4px;
+  display: block;
 }
 
 /* Botão */
-.button {
-  display: block;
-  margin: 20px auto 0;
-  width: 100%;
-  max-width: 300px;
-  padding: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  background-color: #4CAF50;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end; /* Botão alinhado à direita */
+  margin-top: 2rem;
 }
 
-.button:hover {
-  background-color: #45a049;
+.button {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11);
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .button:disabled {
-  background-color: #cccccc;
+  background: #cbd5e0;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-/* Mensagens */
+/* Mensagens de Feedback */
 .message {
-  padding: 12px;
-  border-radius: 4px;
-  margin-top: 15px;
-  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
   font-weight: 500;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in;
 }
 
 .messageSuccess {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background-color: #f0fff4;
+  color: #2f855a;
+  border: 1px solid #c6f6d5;
 }
 
 .messageError {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background-color: #fff5f5;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Responsividade */
-@media (max-width: 900px) {
-  .container {
-    padding: 10px;
-  }
-  
-  .form {
-    padding: 20px;
-  }
-  
-  .row {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .field {
-    min-width: auto;
-    width: 100%;
-  }
-  
-  .label {
-    text-align: left;
-    min-width: 50px;
-  }
-}
-
 @media (max-width: 768px) {
-  .row {
-    grid-template-columns: repeat(2, 1fr); /* Duas colunas em telas médias */
-  }
-
-  .gridH4, .gridH1 {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 600px) {
-  .container {
-    padding: 8px;
-  }
-  
-  .form {
-    padding: 15px;
-  }
-  
-  .gridH4 {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-  }
-  
-  .gridH1 {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 8px;
-  }
-  
-  .sectionTitle {
-    font-size: 0.95rem;
-  }
-  
-  .label {
-    font-size: 0.85rem;
-  }
-  
-  .input, .select {
-    font-size: 0.85rem;
-    padding: 6px 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .form {
-    padding: 10px;
-  }
-
-  .sectionTitle {
-    font-size: 0.9rem;
-  }
-
-  .input, .select {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .form {
-    padding: 12px;
-  }
-  
-  .gridH4 {
-    grid-template-columns: 1fr;
-  }
-  
-  .gridH1 {
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-  }
-  
-  .button {
-    padding: 10px;
-    font-size: 0.9rem;
-  }
-  
-  .section {
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-  }
+  .formCard { padding: 1.5rem; }
+  .gridH4 { grid-template-columns: repeat(3, 1fr); } /* 3 colunas em mobile */
+  .button { width: 100%; }
 }

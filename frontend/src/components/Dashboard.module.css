@@ -1,0 +1,289 @@
+/* Dashboard.module.css */
+
+/* 1. O Fundo Global */
+.dashboardContainer {
+    height: 100vh; /* Altura total da tela */
+    width: 100%;   /* MUDANÇA: 100% evita o scroll horizontal que o 100vw causava */
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 1rem; /* Margem pequena para ver o fundo */
+    box-sizing: border-box;
+    display: flex;
+    overflow: hidden; /* Impede barra de rolagem na página inteira */
+    position: relative;
+}
+
+/* 2. O Grande Cartão Branco (Expandido) */
+.mainCard {
+    background: #ffffff;
+    width: 100%;
+    height: 100%; /* Ocupa toda a altura disponível dentro do padding */
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column; /* Organiza itens verticalmente */
+    overflow: hidden; /* Garante que nada saia do cartão */
+}
+
+/* --- Header --- */
+.header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    flex-shrink: 0; /* Impede que o header encolha */
+}
+
+/* Classes de Usuário (Foto e Nome) */
+.userInfo {
+    display: flex;       
+    align-items: center; 
+    gap: 1rem;           
+}
+
+.avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.dateInfo {
+    color: #a0aec0;
+    font-size: 0.9rem;
+    margin-top: 2px;
+    display: block;
+}
+
+/* --- Corpo do Dashboard (Rolável) --- */
+.contentBody {
+    padding: 2rem;
+    overflow-y: auto; /* Apenas esta parte rola verticalmente */
+    overflow-x: hidden; /* Garante que não haja scroll horizontal aqui */
+    flex-grow: 1;     
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Botões de Ação --- */
+.actionsBar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+}
+
+.actionButton {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e0;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.iconBox {
+    font-size: 1.8rem;
+    background: #fff;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    color: #4a5568;
+}
+
+.btnText {
+    display: flex;
+    flex-direction: column;
+}
+
+.btnTitle {
+    font-weight: 700;
+    color: #2d3748;
+    font-size: 1.05rem;
+}
+
+.btnDesc {
+    font-size: 0.85rem;
+    color: #718096;
+    margin-top: 2px;
+}
+
+/* --- Tabela --- */
+.tableSection {
+    background: #fff;
+    border-radius: 8px;
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Importante para o flexbox não estourar */
+}
+
+.sectionTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 1rem;
+}
+
+.tableWrapper {
+    width: 100%;
+    overflow-x: auto; /* Permite rolar APENAS a tabela se necessário */
+    padding-bottom: 10px; /* Espaço para a barra de rolagem da tabela não tapar dados */
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px; 
+}
+
+.table th {
+    text-align: left;
+    padding: 1rem;
+    color: #718096;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 2px solid #f0f0f0;
+    background: #fff;
+    position: sticky; 
+    top: 0;
+    z-index: 10;
+}
+
+.table td {
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid #f7fafc;
+    color: #2d3748;
+    vertical-align: middle;
+}
+
+.table tr:hover td {
+    background-color: #fbfdff;
+}
+
+/* Badges */
+.badge {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+.final { background: #fff5f5; color: #e53e3e; border: 1px solid #fed7d7; }
+.parcial { background: #f0fff4; color: #38a169; border: 1px solid #c6f6d5; }
+
+/* Links */
+.actionLink {
+    margin-left: 15px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #718096;
+    font-weight: 500;
+}
+.actionLink:hover { color: #3182ce; text-decoration: underline; }
+
+/* --- MOBILE --- */
+@media (max-width: 768px) {
+    .dashboardContainer {
+        padding: 0; 
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto; /* Permite scroll vertical na página */
+        overflow-x: hidden; /* Bloqueia horizontal na página */
+        display: block;
+    }
+
+    .mainCard {
+        border-radius: 0;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+
+    .contentBody {
+        padding: 1.5rem;
+        overflow: visible;
+    }
+
+    .header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        flex-shrink: 0;
+        flex-direction: column; 
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .actionsBar {
+        grid-template-columns: 1fr;
+    }
+
+    /* Tabela Responsiva (Lista) */
+    .tableWrapper { overflow-x: visible; } /* Remove scroll interno no mobile pois vira lista */
+    .table thead { display: none; }
+    .table, .table tbody, .table tr, .table td { display: block; width: 100%; min-width: 0; }
+    
+    .table tr {
+        margin-bottom: 1.5rem;
+        border: 1px solid #f0f0f0;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    
+    .table td {
+        padding: 0.5rem 0;
+        border: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #a0aec0;
+        font-size: 0.85rem;
+    }
+
+    .table td[data-label="Moeda"] { font-size: 1.2rem; color: #2d3748; margin-bottom: 0.5rem; }
+    .table td[data-label="Moeda"]::before { display: none; }
+    
+    .table td[data-label="Ações"] {
+        margin-top: 0.8rem;
+        padding-top: 0.8rem;
+        border-top: 1px dashed #edf2f7;
+        justify-content: flex-end;
+    }
+}

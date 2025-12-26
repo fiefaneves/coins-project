@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { DataForm } from './components/DataForm'; // Note que não usamos mais default export
+import { DataForm } from './components/DataForm';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
+import { Analise } from './components/Analise';
 import './App.css';
 
 // Definição das telas possíveis
@@ -83,14 +84,7 @@ function App() {
         );
 
       case 'analise':
-        return (
-            <div style={{ textAlign: 'center', marginTop: '50px' }}>
-                <h2>Tela de Análise</h2>
-                <p>Em construção...</p>
-                <button onClick={() => setCurrentScreen('dashboard')}>Voltar</button>
-            </div>
-        );
-
+        return <Analise onBack={() => setCurrentScreen('dashboard')} />;
       default:
         return null;
     }

@@ -149,4 +149,30 @@ const excluirPonto = async (req, res) => {
     }
 };
 
-module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto };
+// 6. BUSCAR DADOS PARA ANÁLISE (Por Data)
+const buscarAnalisePorData = async (req, res) => {
+    const { data } = req.query; // Espera ?data=YYYY-MM-DD
+
+    if (!data) {
+        return res.status(400).json({ message: 'Data é obrigatória' });
+    }
+
+    try {
+        // Busca todos os registros daquela data
+        const result = await pool.query(
+            `SELECT * FROM entradas_mercado 
+             WHERE data_registro = $1 
+             ORDER BY moeda ASC`,
+            [data]
+        );
+        
+        // Aqui futuramente faremos os cálculos de Força/Fraqueza antes de enviar
+        // Por enquanto, enviamos os dados brutos
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao buscar análise' });
+    }
+};
+
+module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData };

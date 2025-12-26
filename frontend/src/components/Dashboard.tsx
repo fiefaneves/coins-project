@@ -127,14 +127,6 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                             </div>
                         </div>
 
-                        <div className={styles.actionButton}>
-                            <div className={styles.iconBox}>🔍</div>
-                            <div className={styles.btnText}>
-                                <span className={styles.btnTitle}>Filtrar</span>
-                                <span className={styles.btnDesc}>Buscar por data/moeda</span>
-                            </div>
-                        </div>
-
                         <div className={styles.actionButton} onClick={() => onNavigate('analise')}>
                             <div className={styles.iconBox}>📈</div>
                             <div className={styles.btnText}>

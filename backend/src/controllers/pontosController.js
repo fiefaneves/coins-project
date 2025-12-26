@@ -1,4 +1,3 @@
-// backend/src/controllers/pontosController.js
 const pool = require('../config/db');
 const { toNum, formatarDataParaBanco } = require('../utils/helpers'); 
 
@@ -6,13 +5,23 @@ const { toNum, formatarDataParaBanco } = require('../utils/helpers');
 const salvarPonto = async (req, res) => {
     try {
         const { data, hora, moeda, tipo, mensal, semanal, diario } = req.body;
-        
-        // Garante formato YYYY-MM-DD
+        const userId = req.userId; 
         const dataFormatada = formatarDataParaBanco(data);
-
         const result = await pool.query(
-            'INSERT INTO entradas_mercado (data_registro, hora_registro, moeda, tipo_entrada, valor_mensal, valor_semanal, valor_diario) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-            [dataFormatada, hora, moeda, tipo || 'PARCIAL', toNum(mensal), toNum(semanal), toNum(diario)]
+            `INSERT INTO entradas_mercado 
+            (data_registro, hora_registro, moeda, tipo_entrada, valor_mensal, valor_semanal, valor_diario, criado_por) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+            RETURNING *`,
+            [
+                dataFormatada, 
+                hora, 
+                moeda, 
+                tipo || 'PARCIAL', 
+                toNum(mensal), 
+                toNum(semanal), 
+                toNum(diario),
+                userId
+            ]
         );
         res.json(result.rows[0]);
     } catch (error) {
@@ -47,7 +56,6 @@ const obterPonto = async (req, res) => {
 
         let responseObj = {
             ...dados,
-            // Converte para DD/MM/AAAA para o Frontend entender, ou mantém se já for string
             data: new Date(dados.data_registro).toLocaleDateString('pt-BR'), 
             hora: dados.hora_registro ? dados.hora_registro.substring(0, 5) : '',
             mensal: dados.valor_mensal,
@@ -65,20 +73,20 @@ const obterPonto = async (req, res) => {
     }
 };
 
-// 4. ATUALIZAR (EDITAR)
+// 4. ATUALIZAR (EDITAR) - ATUALIZADO COM LOG DE ALTERAÇÃO
 const atualizarPonto = async (req, res) => {
     const { id } = req.params;
     const dados = req.body;
-    
+    const userId = req.userId; // Vem do token de autenticação
+
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
 
-        // Formata a data recebida (DD/MM/AAAA) para banco (YYYY-MM-DD)
         const dataFormatada = formatarDataParaBanco(dados.data);
 
-        // ATENÇÃO À ORDEM AQUI EMBAIXO:
+        // Atualizamos os dados E gravamos quem alterou e quando
         await client.query(`
             UPDATE entradas_mercado SET 
                 moeda=$1, 
@@ -86,19 +94,22 @@ const atualizarPonto = async (req, res) => {
                 hora_registro=$3, 
                 valor_mensal=$4, 
                 valor_semanal=$5, 
-                valor_diario=$6
-            WHERE id=$7
+                valor_diario=$6,
+                data_alteracao=NOW(),   -- Data atual
+                editado_por=$7          -- ID do usuário que editou
+            WHERE id=$8
         `, [
             dados.moeda,           // $1
-            dataFormatada,         // $2 (DATA - Verifica se é YYYY-MM-DD)
-            dados.hora,            // $3 (HORA - Verifica se é HH:MM)
+            dataFormatada,         // $2
+            dados.hora,            // $3
             toNum(dados.mensal),   // $4
             toNum(dados.semanal),  // $5
             toNum(dados.diario),   // $6
-            id                     // $7
+            userId,                // $7 (NOVO)
+            id                     // $8
         ]);
 
-        // ... Atualiza H4/H1 ...
+        // --- Recriação dos H4/H1 (Mantido igual) ---
         await client.query('DELETE FROM entradas_h4 WHERE entrada_id = $1', [id]);
         await client.query('DELETE FROM entradas_h1 WHERE entrada_id = $1', [id]);
 
@@ -123,22 +134,25 @@ const atualizarPonto = async (req, res) => {
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Erro no update:', error); // Loga o erro no terminal
+        console.error('Erro no update:', error);
         res.status(500).json({ message: 'Erro ao atualizar dados' });
     } finally {
         client.release();
     }
 };
 
-// 5. EXCLUIR (Lógica)
+// 5. EXCLUIR (Lógica) - ATUALIZADO PARA USAR OS NOVOS CAMPOS
 const excluirPonto = async (req, res) => {
     const { id } = req.params;
-    const userId = req.userId;
+    const userId = req.userId; // Vem do middleware de auth
 
     try {
+        // Agora usamos data_alteracao e editado_por também na exclusão
         await pool.query(`
             UPDATE entradas_mercado 
-            SET deletado = TRUE, deletado_em = NOW(), deletado_por = $1
+            SET deletado = TRUE, 
+                data_alteracao = NOW(), 
+                editado_por = $1
             WHERE id = $2
         `, [userId, id]);
         
@@ -149,30 +163,28 @@ const excluirPonto = async (req, res) => {
     }
 };
 
-// 6. BUSCAR DADOS PARA ANÁLISE (Por Data)
+// 6. BUSCAR ANALISE (Mantido)
 const buscarAnalisePorData = async (req, res) => {
-    const { data } = req.query; // Espera ?data=YYYY-MM-DD
+    const { data } = req.query; 
 
-    if (!data) {
-        return res.status(400).json({ message: 'Data é obrigatória' });
-    }
+    if (!data) return res.status(400).json({ message: 'Data é obrigatória' });
 
     try {
-        // Busca todos os registros daquela data
+        // Busca registros da data que NÃO foram deletados
         const result = await pool.query(
             `SELECT * FROM entradas_mercado 
-             WHERE data_registro = $1 
+             WHERE data_registro = $1 AND deletado = FALSE
              ORDER BY moeda ASC`,
             [data]
         );
-        
-        // Aqui futuramente faremos os cálculos de Força/Fraqueza antes de enviar
-        // Por enquanto, enviamos os dados brutos
         res.json(result.rows);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erro ao buscar análise' });
     }
 };
+
+// 7. LISTAR MOEDAS (Se estiver neste arquivo, senão ignore esta parte)
+// Se você tem um controller separado para moedas, não precisa por aqui.
 
 module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData };

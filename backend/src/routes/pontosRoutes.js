@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pontosController = require('../controllers/pontosController');
-const verificarToken = require('../middleware/authMiddleware'); // Importa o porteiro
+const verificarToken = require('../middleware/authMiddleware');
 
 router.get('/pontos', pontosController.listarPontos);
 router.post('/pontos', verificarToken, pontosController.salvarPonto); // Protegido

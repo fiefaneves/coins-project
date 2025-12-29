@@ -8,7 +8,6 @@ interface Ponto {
     data_registro: string; // Vem como string ISO ou formatada do banco
     hora_registro: string;
     moeda: string;
-    tipo_entrada: string;
 }
 
 interface DashboardProps {
@@ -147,7 +146,6 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                         <th>Data</th>
                                         <th>Hora</th>
                                         <th>Moeda</th>
-                                        <th>Tipo</th>
                                         <th style={{textAlign: 'right'}}>Ações</th>
                                     </tr>
                                 </thead>
@@ -163,11 +161,6 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                                 <td data-label="Hora">{ponto.hora_registro?.substring(0, 5)}</td>
                                                 <td data-label="Moeda">
                                                     <span style={{fontWeight: 'bold'}}>{ponto.moeda}</span>
-                                                </td>
-                                                <td data-label="Tipo">
-                                                    <span className={`${styles.badge} ${ponto.tipo_entrada === 'FINAL' ? styles.final : styles.parcial}`}>
-                                                        {ponto.tipo_entrada}
-                                                    </span>
                                                 </td>
                                                 <td data-label="Ações" style={{textAlign: 'right'}}>
                                                     {/* Botão Editar */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from '../css/DataForm.module.css';
 import { Modal } from './Modal';
@@ -20,6 +21,7 @@ interface DataFormProps {
 }
 
 export function DataForm({ editingId, onSuccess }: DataFormProps) {
+    const navigate = useNavigate();
 
     // Estado inicial com campos dinâmicos para H1
     const [formData, setFormData] = useState<FormData>({
@@ -116,36 +118,25 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 await axios.put(`http://localhost:3001/api/pontos/${editingId}`, dadosParaEnviar, { headers });
                 
                 // Se tiver função de sucesso (voltar pro dashboard), chama ela
-                if (onSuccess) onSuccess(); 
+                if (onSuccess) {
+                    onSuccess(); 
+                } else {
+                    navigate('/dashboard');
+                }
             } else {
                 // --- MODO CRIAÇÃO (POST) ---
                 await axios.post('http://localhost:3001/api/pontos', dadosParaEnviar, { headers });
                 
-                // Limpa o formulário e mostra mensagem de sucesso
-                setMessage('Nova entrada registrada com sucesso!');
-                setIsError(false);
-                
-                // Resetar formulário (mantendo estrutura base)
-                setFormData(prev => ({
-                    ...prev,
-                    data: '', hora: '', mensal: '', semanal: '', diario: '',
-                    h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
-                    ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
-                        [`h1_${i.toString().padStart(2, '0')}`, '']
-                    ))
-                }));
+                // SUCESSO! Agora redirecionamos para o Dashboard
+                navigate('/dashboard');
             }
 
         } catch (error) {
             console.error('Erro:', error);
             setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
             setIsError(true);
-        } finally {
-            // Só paramos o loading se NÃO formos sair da tela (onSuccess)
-            // Se for sair, o loading fica até o componente desmontar para evitar "piscar"
-            if (!onSuccess) {
-                setIsLoading(false);
-            }
+            // Só paramos o loading se der erro, pois se der sucesso vamos mudar de página
+            setIsLoading(false);
         }
     };
 

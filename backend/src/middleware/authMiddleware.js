@@ -1,5 +1,6 @@
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'sua_chave_secreta_super_segura_123'; // Mesma chave do authController
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const verificarToken = (req, res, next) => {
     const tokenHeader = req.headers['authorization'];

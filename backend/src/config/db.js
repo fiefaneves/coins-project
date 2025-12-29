@@ -1,14 +1,6 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// const pool = new Pool({
-//     user: 'postgres',
-//     host: 'localhost',
-//     database: 'coins_db',
-//     password: 'fmn123',
-//     port: 5432,
-// });
-
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('aivencloud')) {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }

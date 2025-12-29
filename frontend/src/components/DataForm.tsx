@@ -17,7 +17,7 @@ type FormData = {
 
 interface DataFormProps {
     editingId?: number | null; // Se vier ID, é edição. Se null, é novo.
-    onSuccess?: () => void;    // Função para voltar ao dashboard
+    onSuccess?: () => void;   
 }
 
 export function DataForm({ editingId, onSuccess }: DataFormProps) {
@@ -31,9 +31,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
         mensal: '',
         semanal: '',
         diario: '',
-        // Campos H4 iniciais
         h4_00: '', h4_04: '', h4_08: '', h4_12: '', h4_16: '', h4_20: '',
-        // Gera campos H1 (h1_00 até h1_23)
         ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => 
             [`h1_${i.toString().padStart(2, '0')}`, '']
         ))
@@ -42,11 +40,9 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);
-
-    // Estado para controlar o Modal de Confirmação
     const [showSaveModal, setShowSaveModal] = useState(false);
 
-    // EFEITO: Carrega dados se for Edição
+    // Carrega dados se for Edição
     useEffect(() => {
         if (editingId) {
             setIsLoading(true);
@@ -57,7 +53,6 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             })
             .then(res => {
                 const dados = res.data;
-                // Converte tudo para string para o formulário não reclamar de null
                 const formatedData: any = { ...dados };
                 Object.keys(formatedData).forEach(key => {
                     if (formatedData[key] === null) formatedData[key] = '';
@@ -73,40 +68,29 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
         }
     }, [editingId]);
     
-    // Atualiza os inputs conforme digita
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prevState => ({ ...prevState, [name]: value }));
     };
 
-    // 1. Função chamada pelo FORMULÁRIO (Botão Salvar/Registrar)
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Se for Edição, perguntamos antes (Abre o Modal)
         if (editingId) {
             setShowSaveModal(true);
         } else {
-            // Se for Novo, salva direto
             processSave();
         }
     };
 
-    // 2. Função REAL que manda para o Backend (chamada pelo Modal ou direto se for novo)
     const processSave = async () => {
-        // Fecha o modal se estiver aberto
         setShowSaveModal(false);
         setIsLoading(true);
         setMessage('');
         setIsError(false);
 
         try {
-            // Criamos uma cópia para enviar
             const dadosParaEnviar = { ...formData };
-            
-            // O Backend já tem helpers para tratar data (DD/MM/AAAA ou YYYY-MM-DD),
-            // então enviamos como está no input.
-
             const token = localStorage.getItem('user_token');
             const headers = {
                 'Authorization': `Bearer ${token}`,
@@ -114,20 +98,14 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             };
 
             if (editingId) {
-                // --- MODO EDIÇÃO (PUT) ---
                 await axios.put(`http://localhost:3001/api/pontos/${editingId}`, dadosParaEnviar, { headers });
-                
-                // Se tiver função de sucesso (voltar pro dashboard), chama ela
                 if (onSuccess) {
                     onSuccess(); 
                 } else {
                     navigate('/dashboard');
                 }
             } else {
-                // --- MODO CRIAÇÃO (POST) ---
                 await axios.post('http://localhost:3001/api/pontos', dadosParaEnviar, { headers });
-                
-                // SUCESSO! Agora redirecionamos para o Dashboard
                 navigate('/dashboard');
             }
 
@@ -135,12 +113,10 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             console.error('Erro:', error);
             setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
             setIsError(true);
-            // Só paramos o loading se der erro, pois se der sucesso vamos mudar de página
             setIsLoading(false);
         }
     };
 
-    // Arrays auxiliares para gerar os inputs no JSX
     const h4Hours = ['00', '04', '08', '12', '16', '20'];
     const h1Hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 
@@ -259,7 +235,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 title="Salvar Alterações"
                 message={`Tem certeza que deseja aplicar as alterações na entrada #${editingId}?`}
                 type="confirm"
-                onConfirm={processSave}         // Ao confirmar, chama o processSave
+                onConfirm={processSave}  
                 onCancel={() => setShowSaveModal(false)}
             />
         </div>

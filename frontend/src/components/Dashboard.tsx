@@ -5,30 +5,26 @@ import { Modal } from './Modal';
 // Definição dos tipos de dados que vêm do Backend
 interface Ponto {
     id: number;
-    data_registro: string; // Vem como string ISO ou formatada do banco
+    data_registro: string; 
     hora_registro: string;
     moeda: string;
 }
 
 interface DashboardProps {
     onNavigate: (screen: 'form' | 'analise') => void;
-    onEdit?: (id: number) => void; // Função para editar
+    onEdit?: (id: number) => void; 
     userNome?: string;
 }
 
 export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
     const [pontos, setPontos] = useState<Ponto[]>([]);
     const [loading, setLoading] = useState(true);
-    
-    // Estados para controlar o Modal de Exclusão
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [idToDelete, setIdToDelete] = useState<number | null>(null);
 
-    // Carregar dados ao iniciar
     useEffect(() => {
         const fetchPontos = async () => {
             try {
-                // Removemos o LIMIT no backend, então aqui virá tudo
                 const response = await fetch('http://localhost:3001/api/pontos');
                 const data = await response.json();
                 setPontos(data);
@@ -42,20 +38,17 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
         fetchPontos();
     }, []);
 
-    // Formata a data para exibir bonito na tabela (DD/MM/AAAA)
     const formatarData = (dataIso: string) => {
         if (!dataIso) return '-';
         const date = new Date(dataIso);
         return date.toLocaleDateString('pt-BR');
     };
 
-    // 1. Função chamada ao clicar na lixeira (apenas abre o Modal visual)
     const handleClickDelete = (id: number) => {
         setIdToDelete(id);
         setShowDeleteModal(true);
     };
 
-    // 2. Função chamada pelo botão "Sim, Excluir" do Modal (faz a ação real)
     const confirmDelete = async () => {
         if (!idToDelete) return;
 
@@ -70,7 +63,6 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
             });
 
             if (response.ok) {
-                // Atualiza a tabela na hora removendo o item excluído
                 setPontos(prev => prev.filter(p => p.id !== idToDelete));
             } else {
                 alert('Erro ao excluir no servidor.');
@@ -79,7 +71,6 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
             console.error(error);
             alert('Erro de conexão ao excluir.');
         } finally {
-            // Fecha o modal e limpa a memória
             setShowDeleteModal(false);
             setIdToDelete(null);
         }

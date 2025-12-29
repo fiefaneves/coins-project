@@ -9,13 +9,12 @@ export function Login({ onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
-  // Novo estado para controlar se está carregando
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro('');
-    setIsLoading(true); // 1. Começa a carregar (bloqueia o botão)
+    setIsLoading(true); 
 
     try {     
       const response = await fetch('http://localhost:3001/api/login', {
@@ -34,7 +33,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
     } catch (error) {
       setErro('Erro de conexão com o servidor. Tente novamente mais tarde.');
     } finally {
-      setIsLoading(false); // 3. Termina de carregar (libera o botão)
+      setIsLoading(false);
     }
   };
 
@@ -75,7 +74,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
           <button 
             type="submit" 
             className={styles.submitButton}
-            disabled={isLoading} // Desativa se estiver carregando
+            disabled={isLoading}
           >
             {isLoading ? 'A entrar...' : 'Entrar'}
           </button>

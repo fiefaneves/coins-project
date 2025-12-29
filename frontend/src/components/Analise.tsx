@@ -57,7 +57,7 @@ export function Analise({ onBack }: AnaliseProps) {
         }
     };
 
-    // --- LÓGICA MOCK (Simulação) ---
+    // --- LÓGICA MOCK ---
     const getStatus = (moeda: string, time: string, coluna: string) => {
         // Simulação aleatória de status (Força, Fraqueza ou null)
         const rand = Math.random();

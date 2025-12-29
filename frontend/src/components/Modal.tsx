@@ -6,7 +6,7 @@ interface ModalProps {
     message: string;
     onConfirm: () => void;
     onCancel: () => void;
-    type?: 'danger' | 'confirm'; // 'danger' para excluir, 'confirm' para editar
+    type?: 'danger' | 'confirm';
 }
 
 export function Modal({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }: ModalProps) {

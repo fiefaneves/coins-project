@@ -3,30 +3,113 @@ const { toNum, formatarDataParaBanco } = require('../utils/helpers');
 
 // 1. SALVAR (CREATE)
 const salvarPonto = async (req, res) => {
+    const client = await pool.connect();
+
     try {
-        const { data, hora, moeda, tipo, mensal, semanal, diario } = req.body;
-        const userId = req.userId; 
+        await client.query('BEGIN'); // Inicia transação
+
+        // 1. Removemos 'tipo' da desestruturação
+        const { data, hora, moeda, mensal, semanal, diario } = req.body;
+        const userId = req.userId;
+
         const dataFormatada = formatarDataParaBanco(data);
-        const result = await pool.query(
-            `INSERT INTO entradas_mercado 
-            (data_registro, hora_registro, moeda, tipo_entrada, valor_mensal, valor_semanal, valor_diario, criado_por) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-            RETURNING *`,
-            [
-                dataFormatada, 
-                hora, 
-                moeda, 
-                tipo || 'PARCIAL', 
-                toNum(mensal), 
-                toNum(semanal), 
-                toNum(diario),
-                userId
-            ]
+
+        // Verifica se já existe entrada para Moeda + Data
+        const checkExistente = await client.query(
+            `SELECT id FROM entradas_mercado 
+             WHERE moeda = $1 AND data_registro = $2 AND deletado = FALSE`,
+            [moeda, dataFormatada]
         );
-        res.json(result.rows[0]);
+
+        let entradaId;
+        let acaoRealizada = '';
+
+        if (checkExistente.rows.length > 0) {
+            // --- ATUALIZAR (Sobrescreve existente) ---
+            entradaId = checkExistente.rows[0].id;
+            acaoRealizada = 'atualizado';
+
+            // Removemos o campo tipo_entrada da Query e reajustamos os índices ($)
+            await client.query(`
+                UPDATE entradas_mercado SET 
+                    hora_registro = $1,
+                    valor_mensal = $2,
+                    valor_semanal = $3,
+                    valor_diario = $4,
+                    editado_por = $5,
+                    data_alteracao = NOW()
+                WHERE id = $6
+            `, [
+                hora,                   // $1
+                toNum(mensal),          // $2
+                toNum(semanal),         // $3
+                toNum(diario),          // $4
+                userId,                 // $5
+                entradaId               // $6
+            ]);
+
+            // Limpa filhos antigos
+            await client.query('DELETE FROM entradas_h4 WHERE entrada_id = $1', [entradaId]);
+            await client.query('DELETE FROM entradas_h1 WHERE entrada_id = $1', [entradaId]);
+
+        } else {
+            // --- CRIAR NOVO ---
+            // Removemos o campo tipo_entrada da Query e reajustamos os índices
+            const result = await client.query(
+                `INSERT INTO entradas_mercado 
+                (data_registro, hora_registro, moeda, valor_mensal, valor_semanal, valor_diario, criado_por) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7) 
+                RETURNING id`,
+                [
+                    dataFormatada,  // $1
+                    hora,           // $2
+                    moeda,          // $3
+                    toNum(mensal),  // $4
+                    toNum(semanal), // $5
+                    toNum(diario),  // $6
+                    userId          // $7
+                ]
+            );
+            entradaId = result.rows[0].id;
+            acaoRealizada = 'criado';
+        }
+
+        // --- SALVAR H4 e H1 (Código igual ao anterior) ---
+        const h4Hours = ['00', '04', '08', '12', '16', '20'];
+        for (const h of h4Hours) {
+            const valor = toNum(req.body[`h4_${h}`]);
+            if (valor !== null) {
+                await client.query(
+                    'INSERT INTO entradas_h4 (entrada_id, hora, valor) VALUES ($1, $2, $3)',
+                    [entradaId, h, valor]
+                );
+            }
+        }
+
+        for (let i = 0; i < 24; i++) {
+            const horaString = i.toString().padStart(2, '0');
+            const valor = toNum(req.body[`h1_${horaString}`]);
+            if (valor !== null) {
+                await client.query(
+                    'INSERT INTO entradas_h1 (entrada_id, hora, valor) VALUES ($1, $2, $3)',
+                    [entradaId, horaString, valor]
+                );
+            }
+        }
+
+        await client.query('COMMIT');
+        
+        res.status(201).json({ 
+            message: `Registro ${acaoRealizada} com sucesso!`, 
+            id: entradaId 
+        });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erro ao salvar' });
+        await client.query('ROLLBACK');
+        console.error("Erro ao processar:", error);
+        res.status(500).json({ message: 'Erro ao processar dados.' });
+    } finally {
+        client.release();
     }
 };
 
@@ -34,7 +117,14 @@ const salvarPonto = async (req, res) => {
 const listarPontos = async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, data_registro, hora_registro, moeda, tipo_entrada FROM entradas_mercado WHERE deletado = FALSE ORDER BY data_registro DESC, hora_registro DESC'
+            `SELECT 
+                id, 
+                data_registro, 
+                hora_registro, 
+                moeda 
+            FROM entradas_mercado 
+            WHERE deletado = FALSE 
+            ORDER BY data_registro DESC, hora_registro DESC`
         );
         res.json(result.rows);
     } catch (error) {
@@ -183,8 +273,5 @@ const buscarAnalisePorData = async (req, res) => {
         res.status(500).json({ message: 'Erro ao buscar análise' });
     }
 };
-
-// 7. LISTAR MOEDAS (Se estiver neste arquivo, senão ignore esta parte)
-// Se você tem um controller separado para moedas, não precisa por aqui.
 
 module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData };

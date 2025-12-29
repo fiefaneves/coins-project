@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-// 1. Importações do Router
 import { Routes, Route, useNavigate, useParams, Navigate } from 'react-router-dom';
-
 import { DataForm } from './components/DataForm';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
@@ -10,7 +8,7 @@ import './App.css';
 
 // Componente Wrapper para pegar o ID da URL e passar para o DataForm
 const EditarWrapper = () => {
-    const { id } = useParams(); // Pega o número da URL (ex: /editar/15)
+    const { id } = useParams();
     return <DataForm editingId={Number(id)} />;
 };
 
@@ -23,7 +21,6 @@ function App() {
     const tokenSalvo = localStorage.getItem('user_token');
     if (tokenSalvo) {
       setToken(tokenSalvo);
-      // Opcional: Se estiver na raiz, joga pro dashboard
       if (window.location.pathname === '/' || window.location.pathname === '/login') {
           navigate('/dashboard');
       }
@@ -35,7 +32,7 @@ function App() {
   const handleLogin = (novoToken: string) => {
     localStorage.setItem('user_token', novoToken);
     setToken(novoToken);
-    navigate('/dashboard'); // Usa navegação por rota agora
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
@@ -44,7 +41,6 @@ function App() {
     navigate('/login');
   };
 
-  // Funções que o Dashboard vai usar para navegar
   const irParaNovo = () => navigate('/novo');
   const irParaEditar = (id: number) => navigate(`/editar/${id}`);
   const irParaAnalise = () => navigate('/analise');

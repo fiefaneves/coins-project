@@ -1,5 +1,3 @@
-/* Login.module.css */
-
 /* Fundo da página inteira */
 .loginContainer {
     display: flex;
@@ -54,7 +52,6 @@
     box-sizing: border-box; /* Importante para o padding não estourar a largura */
 }
 
-/* Efeito ao clicar no input */
 .input:focus {
     outline: none;
     border-color: #4a90e2;

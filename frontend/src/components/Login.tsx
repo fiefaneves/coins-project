@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styles from '../css/Login.module.css';
 
 interface LoginProps {
-  onLoginSuccess: (token: string) => void;
+  onLoginSuccess: (token: string, nome: string) => void;
 }
 
 export function Login({ onLoginSuccess }: LoginProps) {
@@ -26,7 +26,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
       const data = await response.json();
 
       if (response.ok) {
-        onLoginSuccess(data.token);
+        onLoginSuccess(data.token, data.usuario.nome);
       } else {
         setErro(data.message || 'Erro ao entrar. Verifique suas credenciais.');
       }
@@ -76,7 +76,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
             className={styles.submitButton}
             disabled={isLoading}
           >
-            {isLoading ? 'A entrar...' : 'Entrar'}
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
       </div>

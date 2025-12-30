@@ -14,13 +14,18 @@ const EditarWrapper = () => {
 
 function App() {
   const [token, setToken] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('');
   const navigate = useNavigate(); // Hook para navegar entre páginas
 
   // Verificar login ao iniciar
   useEffect(() => {
     const tokenSalvo = localStorage.getItem('user_token');
+    const nomeSalvo = localStorage.getItem('user_name');
+
     if (tokenSalvo) {
       setToken(tokenSalvo);
+      if (nomeSalvo) setUserName(nomeSalvo);
+
       if (window.location.pathname === '/' || window.location.pathname === '/login') {
           navigate('/dashboard');
       }
@@ -29,15 +34,20 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (novoToken: string) => {
+  const handleLogin = (novoToken: string, nome: string) => {
     localStorage.setItem('user_token', novoToken);
+    localStorage.setItem('user_name', nome);
+
     setToken(novoToken);
+    setUserName(nome);
     navigate('/dashboard');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('user_token');
+    localStorage.removeItem('user_name');
     setToken(null);
+    setUserName('');
     navigate('/login');
   };
 
@@ -78,7 +88,7 @@ function App() {
                         if (screen === 'analise') irParaAnalise();
                     }}
                     onEdit={irParaEditar} 
-                    userNome="Admin" 
+                    userNome={userName} 
                 />
             ) : <Navigate to="/login" />
           } />

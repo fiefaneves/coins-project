@@ -107,3 +107,4 @@ Entre na pasta que foi criada (`coins-project`). Você verá alguns arquivos `.b
 2. O sistema abrirá as janelas do servidor e o site carregará no seu navegador automaticamente.
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3001
+3. Acesse o site pelo link: http://localhost:5173

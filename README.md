@@ -70,17 +70,14 @@ O projeto utiliza um banco PostgreSQL relacional normalizado:
 ### 5.1. Pré-requisitos (O que baixar antes)
 #### A) Instalando o Git (Para baixar o projeto)
 O Git é a ferramenta que vai "clonar" (baixar) o código para sua máquina.
-1. Acesse o site oficial: [git-scm.com/downloads](https://git-scm.com/downloads).
-2. Clique em **"Download for Windows"**.
-3. Baixe a versão **"64-bit Git for Windows Setup"**.
-4. Execute o instalador.
+1. Baixe o Git clicando no [link](https://github.com/git-for-windows/git/releases/download/v2.52.0.windows.1/Git-2.52.0-64-bit.exe)
+2. Execute o instalador.
    - **Dica:** Pode clicar em "Next" (Próximo) em todas as telas até finalizar. As configurações padrão são perfeitas.
-5. Para testar se funcionou: Abra o seu "Prompt de Comando" (CMD) e digite `git --version`. Se aparecer um número, deu certo!
+3. Para testar se funcionou: Abra o seu "Prompt de Comando" (CMD) e digite `git --version`. Se aparecer um número, deu certo!
 
 #### B) Instalando o Node.js (Para rodar o projeto)
-1. Acesse: [nodejs.org](https://nodejs.org).
-2. Baixe a versão **LTS** (Recomendada).
-3. Instale (Next, Next, Finish).
+1. Baixe a o Node.js clincando no [link](https://nodejs.org/dist/v24.12.0/node-v24.12.0-x64.msi).
+2. Execute o instalador (Next, Next, Finish).
 
 ---
 

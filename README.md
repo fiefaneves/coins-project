@@ -67,20 +67,43 @@ O projeto utiliza um banco PostgreSQL relacional normalizado:
 
 ## 5. Como Rodar o Projeto (Windows)
 
-### Pré-requisitos
-- Node.js (v18 ou superior).
-- Acesso ao banco PostgreSQL (Nuvem/Aiven).
+### 5.1. Pré-requisitos (O que baixar antes)
+#### A) Instalando o Git (Para baixar o projeto)
+O Git é a ferramenta que vai "clonar" (baixar) o código para sua máquina.
+1. Acesse o site oficial: [git-scm.com/downloads](https://git-scm.com/downloads).
+2. Clique em **"Download for Windows"**.
+3. Baixe a versão **"64-bit Git for Windows Setup"**.
+4. Execute o instalador.
+   - **Dica:** Pode clicar em "Next" (Próximo) em todas as telas até finalizar. As configurações padrão são perfeitas.
+5. Para testar se funcionou: Abra o seu "Prompt de Comando" (CMD) e digite `git --version`. Se aparecer um número, deu certo!
 
-### Passo 1: Configuração do Backend
+#### B) Instalando o Node.js (Para rodar o projeto)
+1. Acesse: [nodejs.org](https://nodejs.org).
+2. Baixe a versão **LTS** (Recomendada).
+3. Instale (Next, Next, Finish).
 
-1. **Primeira vez?**
-   Execute o arquivo `instalar.bat`. Ele vai baixar todas as bibliotecas necessárias para o Backend e Frontend.
+---
 
-2. **Configurar o Banco (Primeira vez)**
-   Certifique-se de que criou o arquivo `.env` dentro da pasta `backend`.
+### 5.2. Baixando e Rodando o Projeto
+Agora que você tem as ferramentas, vamos colocar o sistema para funcionar.
 
-3. **Rodar o Projeto**
-   Execute o arquivo `iniciar.bat`.
-   O sistema abrirá as janelas do servidor e do site automaticamente.
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3001
+#### Passo 1: Baixar o Código (Clonar)
+1. Crie uma pasta no seu computador onde quer salvar o projeto.
+2. Clique com o botão direito nessa pasta e selecione **"Abrir no terminal"**
+3. Digite o comando abaixo e aperte Enter:
+   ```bash
+   git clone https://github.com/fiefaneves/coins-project.git
+
+#### Passo 2: Instalação Automática
+Entre na pasta que foi criada (`coins-project`). Você verá alguns arquivos `.bat`.
+1. Dê dois cliques no arquivo `install.bat`.
+2. Uma janela preta vai abrir e baixar todas as bibliotecas necessárias automaticamente. Aguarde até aparecer "Instalação Concluida".
+
+#### Passo 3: Configurar o Banco de Dados (Apenas na 1ª vez)
+1. Cole o arquivo `.env` disponível no link [Arquivo](https://drive.google.com/file/d/1CUeXBLNBxlOZbUSe1BmF8iZzfkCJoCQQ/view?usp=sharing) na pasta `backend` 
+
+#### Passo 4: Iniciar o Sistema
+1. Dê dois cliques no arquivo `start.bat`.
+2. O sistema abrirá as janelas do servidor e o site carregará no seu navegador automaticamente.
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3001

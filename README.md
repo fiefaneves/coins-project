@@ -105,5 +105,11 @@ Entre na pasta que foi criada (`coins-project`). Você verá alguns arquivos `.b
 #### Passo 4: Iniciar o Sistema
 1. Dê dois cliques no arquivo `start.bat`.
 2. O sistema abrirá as janelas do servidor e o site carregará no seu navegador automaticamente.
+<<<<<<< HEAD
 - Frontend: http://localhost:5173 
 - Backend: http://localhost:3001
+=======
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3001
+3. Acesse o site pelo link: http://localhost:5173
+>>>>>>> 7f90204fb13819d2d5cc0ee8c6cc8bfc6fd5ce42

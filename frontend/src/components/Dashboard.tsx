@@ -13,7 +13,7 @@ interface Ponto {
 interface DashboardProps {
     onNavigate: (screen: 'form' | 'analise') => void;
     onEdit?: (id: number) => void; 
-    userNome?: string;
+    userNome: string;
 }
 
 export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {

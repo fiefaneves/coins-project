@@ -7,7 +7,6 @@ import { Modal } from './Modal';
 // Definição dos tipos do formulário
 type FormData = {
     data: string;
-    hora: string;
     moeda: string;
     mensal: string;
     semanal: string;
@@ -26,7 +25,6 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     // Estado inicial com campos dinâmicos para H1
     const [formData, setFormData] = useState<FormData>({
         data: '',
-        hora: '',
         moeda: 'AUD',
         mensal: '',
         semanal: '',
@@ -148,10 +146,6 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                             <div className={styles.field}>
                                 <label className={styles.label}>Data</label>
                                 <input className={styles.input} type="text" name="data" value={formData.data} onChange={handleChange} placeholder="DD/MM/AAAA" required />
-                            </div>
-                            <div className={styles.field}>
-                                <label className={styles.label}>Hora</label>
-                                <input className={styles.input} type="time" name="hora" value={formData.hora} onChange={handleChange} required />
                             </div>
                         </div>
                     </div>

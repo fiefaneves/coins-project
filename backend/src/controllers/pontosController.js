@@ -9,8 +9,13 @@ const salvarPonto = async (req, res) => {
         await client.query('BEGIN'); // Inicia transação
 
         // 1. Removemos 'tipo' da desestruturação
-        const { data, hora, moeda, mensal, semanal, diario } = req.body;
+        const { data, moeda, mensal, semanal, diario } = req.body;
         const userId = req.userId;
+
+        const horaSistema = new Date().toLocaleTimeString('pt-BR', { 
+            timeZone: 'America/Sao_Paulo', 
+            hour12: false 
+        });
 
         const dataFormatada = formatarDataParaBanco(data);
 
@@ -40,7 +45,7 @@ const salvarPonto = async (req, res) => {
                     data_alteracao = NOW()
                 WHERE id = $6
             `, [
-                hora,                   // $1
+                horaSistema,            // $1
                 toNum(mensal),          // $2
                 toNum(semanal),         // $3
                 toNum(diario),          // $4
@@ -62,7 +67,7 @@ const salvarPonto = async (req, res) => {
                 RETURNING id`,
                 [
                     dataFormatada,  // $1
-                    hora,           // $2
+                    horaSistema,    // $2
                     moeda,          // $3
                     toNum(mensal),  // $4
                     toNum(semanal), // $5
@@ -174,6 +179,10 @@ const atualizarPonto = async (req, res) => {
     try {
         await client.query('BEGIN');
 
+        const horaSistema = new Date().toLocaleTimeString('pt-BR', { 
+            timeZone: 'America/Sao_Paulo', 
+            hour12: false 
+        });
         const dataFormatada = formatarDataParaBanco(dados.data);
 
         // Atualizamos os dados E gravamos quem alterou e quando
@@ -191,7 +200,7 @@ const atualizarPonto = async (req, res) => {
         `, [
             dados.moeda,           // $1
             dataFormatada,         // $2
-            dados.hora,            // $3
+            horaSistema,           // $3
             toNum(dados.mensal),   // $4
             toNum(dados.semanal),  // $5
             toNum(dados.diario),   // $6

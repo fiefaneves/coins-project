@@ -33,8 +33,10 @@ interface AnaliseProps {
 }
 
 export function Analise({ onBack }: AnaliseProps) {
-    const today = new Date().toISOString().split('T')[0];
-    const [selectedDate, setSelectedDate] = useState(today);
+    const today = new Date();
+    const formattedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const [selectedDate, setSelectedDate] = useState(formattedToday);
     const [dadosBrutos, setDadosBrutos] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 

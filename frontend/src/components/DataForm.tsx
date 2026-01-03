@@ -22,9 +22,12 @@ interface DataFormProps {
 export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const navigate = useNavigate();
 
+    const hoje = new Date();
+    const dataPadrao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+
     // Estado inicial com campos dinâmicos para H1
     const [formData, setFormData] = useState<FormData>({
-        data: '',
+        data: dataPadrao,
         moeda: 'AUD',
         mensal: '',
         semanal: '',
@@ -53,6 +56,12 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             .then(res => {
                 const dados = res.data;
                 const formatedData: any = { ...dados };
+
+                if (formatedData.data && formatedData.data.includes('/')) {
+                    const [dia, mes, ano] = formatedData.data.split('/');
+                    formatedData.data = `${ano}-${mes}-${dia}`;
+                }
+
                 Object.keys(formatedData).forEach(key => {
                     if (formatedData[key] === null) formatedData[key] = '';
                     else formatedData[key] = String(formatedData[key]);
@@ -89,7 +98,11 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
         setIsError(false);
 
         try {
-            const dadosParaEnviar = { ...formData };
+            const dataInvertida = formData.data.split('-').reverse().join('/');
+            const dadosParaEnviar = { 
+                ...formData,
+                data: dataInvertida
+            };
             const token = localStorage.getItem('user_token');
             const headers = {
                 'Authorization': `Bearer ${token}`,
@@ -147,7 +160,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                             </div>
                             <div className={styles.field}>
                                 <label className={styles.label}>Data</label>
-                                <input className={styles.input} type="text" name="data" value={formData.data} onChange={handleChange} placeholder="DD/MM/AAAA" required />
+                                <input className={styles.input} type="date" name="data" value={formData.data} onChange={handleChange} required />
                             </div>
                         </div>
                     </div>

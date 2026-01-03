@@ -39,6 +39,8 @@ export function Analise({ onBack }: AnaliseProps) {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        // linha incluida para evitar warning (estava dando erro no deploy)
+        if (dadosBrutos.length > 0) console.log("Dados brutos carregados:", dadosBrutos);
         carregarDados();
     }, [selectedDate]);
 
@@ -59,7 +61,7 @@ export function Analise({ onBack }: AnaliseProps) {
     };
 
     // --- LÓGICA MOCK ---
-    const getStatus = (moeda: string, time: string, coluna: string) => {
+    const getStatus = (_moeda: string, _time: string, _coluna: string) => {
         // Simulação aleatória de status (Força, Fraqueza ou null)
         const rand = Math.random();
         if (rand > 0.6) return 'Força';

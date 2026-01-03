@@ -97,7 +97,8 @@ Entre na pasta que foi criada (`coins-project`). Você verá alguns arquivos `.b
 2. Uma janela preta vai abrir e baixar todas as bibliotecas necessárias automaticamente. Aguarde até aparecer "Instalação Concluida".
 
 #### Passo 3: Configurar o Banco de Dados (Apenas na 1ª vez)
-1. Cole o arquivo `.env` disponível no link [Arquivo](https://drive.google.com/file/d/1CUeXBLNBxlOZbUSe1BmF8iZzfkCJoCQQ/view?usp=sharing) na pasta `backend` 
+1. Cole o arquivo `.env` disponível no link [Arquivo](https://drive.google.com/file/d/1CUeXBLNBxlOZbUSe1BmF8iZzfkCJoCQQ/view?usp=sharing) na pasta `backend`.
+2. **ATENÇÃO:** Quando baixa o arquivo no Drive ele vem sem o ponto na frente (env), renomeie para .env (com o ponto na frente).
 
 #### Passo 4: Iniciar o Sistema
 1. Dê dois cliques no arquivo `start.bat`.

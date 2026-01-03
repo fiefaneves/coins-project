@@ -45,8 +45,9 @@ export function Analise({ onBack }: AnaliseProps) {
     const carregarDados = async () => {
         setLoading(true);
         try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
             const token = localStorage.getItem('user_token');
-            const res = await axios.get(`http://localhost:3001/api/analise?data=${selectedDate}`, {
+            const res = await axios.get(`${apiUrl}/api/analise?data=${selectedDate}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setDadosBrutos(res.data);

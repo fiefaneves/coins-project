@@ -25,7 +25,8 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
     useEffect(() => {
         const fetchPontos = async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/pontos');
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                const response = await fetch(`${apiUrl}/api/pontos`);
                 const data = await response.json();
                 setPontos(data);
             } catch (error) {
@@ -53,8 +54,9 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
         if (!idToDelete) return;
 
         try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
             const token = localStorage.getItem('user_token');
-            const response = await fetch(`http://localhost:3001/api/pontos/${idToDelete}`, {
+            const response = await fetch(`${apiUrl}/api/pontos/${idToDelete}`, {
                 method: 'DELETE',
                 headers: { 
                     'Authorization': `Bearer ${token}`,

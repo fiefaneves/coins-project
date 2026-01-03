@@ -46,7 +46,8 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             setIsLoading(true);
             const token = localStorage.getItem('user_token');
             
-            axios.get(`http://localhost:3001/api/pontos/${editingId}`, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            axios.get(`${apiUrl}/api/pontos/${editingId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             .then(res => {
@@ -94,16 +95,17 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             };
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
             if (editingId) {
-                await axios.put(`http://localhost:3001/api/pontos/${editingId}`, dadosParaEnviar, { headers });
+                await axios.put(`${apiUrl}/api/pontos/${editingId}`, dadosParaEnviar, { headers });
                 if (onSuccess) {
                     onSuccess(); 
                 } else {
                     navigate('/dashboard');
                 }
             } else {
-                await axios.post('http://localhost:3001/api/pontos', dadosParaEnviar, { headers });
+                await axios.post(`${apiUrl}/api/pontos`, dadosParaEnviar, { headers });
                 navigate('/dashboard');
             }
 

@@ -123,13 +123,16 @@ const listarPontos = async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT 
-                id, 
-                data_registro, 
-                hora_registro, 
-                moeda 
-            FROM entradas_mercado 
-            WHERE deletado = FALSE 
-            ORDER BY data_registro DESC, hora_registro DESC`
+                e.id, 
+                e.data_registro, 
+                e.hora_registro, 
+                e.moeda,
+                COALESCE(u_edit.nome, u_criador.nome) as responsavel
+            FROM entradas_mercado e
+            LEFT JOIN usuarios u_criador ON e.criado_por = u_criador.id
+            LEFT JOIN usuarios u_edit ON e.editado_por = u_edit.id
+            WHERE e.deletado = FALSE 
+            ORDER BY e.data_registro DESC, e.hora_registro DESC`
         );
         res.json(result.rows);
     } catch (error) {

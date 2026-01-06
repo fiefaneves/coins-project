@@ -8,6 +8,7 @@ interface Ponto {
     data_registro: string; 
     hora_registro: string;
     moeda: string;
+    responsavel: string;
 }
 
 interface DashboardProps {
@@ -139,6 +140,7 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                         <th>Data</th>
                                         <th>Hora</th>
                                         <th>Moeda</th>
+                                        <th>Usuário</th>
                                         <th style={{textAlign: 'right'}}>Ações</th>
                                     </tr>
                                 </thead>
@@ -154,6 +156,9 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                                 <td data-label="Hora">{ponto.hora_registro?.substring(0, 5)}</td>
                                                 <td data-label="Moeda">
                                                     <span style={{fontWeight: 'bold'}}>{ponto.moeda}</span>
+                                                </td>
+                                                <td data-label="Usuário" style={{color: '#666', fontSize: '0.9rem'}}>
+                                                    {ponto.responsavel || '-'}
                                                 </td>
                                                 <td data-label="Ações" style={{textAlign: 'right'}}>
                                                     {/* Botão Editar */}

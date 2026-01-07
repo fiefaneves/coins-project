@@ -1,7 +1,6 @@
 # Próximos Passos - 07/01/2026
 
-## TO-DO 
-- Análise de BUG - Data volta 1 dia quando entrada é feita pelo deploy. Pela aplicação local, tudo normal.
+## TO-DO
 - Campo mensal e semanal mudam so no primeiro dia do mes e no domingo, respectivamente. Se não for o primeiro dia do mês, pode puxar o último valor do mês. Se não for domingo, pode puxar o último valor da semana.
 
 ## Implementação das Fórmulas - Análise

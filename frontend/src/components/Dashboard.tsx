@@ -42,8 +42,16 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
 
     const formatarData = (dataIso: string) => {
         if (!dataIso) return '-';
-        const date = new Date(dataIso);
-        return date.toLocaleDateString('pt-BR');
+        
+        // 1. Garante que pegamos só a parte da data (YYYY-MM-DD)
+        // Isso resolve se vier "2026-01-07" ou "2026-01-07T00:00:00.000Z"
+        const dataPura = dataIso.toString().split('T')[0]; 
+        
+        // 2. Divide os pedaços (Ano, Mês, Dia)
+        const [ano, mes, dia] = dataPura.split('-');
+        
+        // 3. Monta no formato brasileiro manualmente
+        return `${dia}/${mes}/${ano}`;
     };
 
     const handleClickDelete = (id: number) => {

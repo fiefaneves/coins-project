@@ -152,9 +152,25 @@ const obterPonto = async (req, res) => {
         const resH4 = await pool.query('SELECT hora, valor FROM entradas_h4 WHERE entrada_id = $1', [id]);
         const resH1 = await pool.query('SELECT hora, valor FROM entradas_h1 WHERE entrada_id = $1', [id]);
 
+        // --- CORREÇÃO DO FUSO HORÁRIO ---
+        // Aqui formatamos a data manualmente (String -> String) sem passar pelo objeto Date() do JS.
+        // Isso impede que o servidor subtraia horas e mude o dia.
+        let dataFormatada = '';
+        if (dados.data_registro) {
+            // Se você aplicou a mudança no db.js, isso já é uma string "2025-05-20".
+            // Se não aplicou, é um Objeto Date. O código abaixo resolve ambos os casos:
+            const dataStr = typeof dados.data_registro === 'string' 
+                ? dados.data_registro 
+                : dados.data_registro.toISOString().split('T')[0];
+
+            // Inverte de AAAA-MM-DD para DD/MM/AAAA
+            dataFormatada = dataStr.split('-').reverse().join('/');
+        }
+        // --------------------------------
+
         let responseObj = {
             ...dados,
-            data: new Date(dados.data_registro).toLocaleDateString('pt-BR'), 
+            data: dataFormatada, // <--- Usamos a variável segura aqui
             hora: dados.hora_registro ? dados.hora_registro.substring(0, 5) : '',
             mensal: dados.valor_mensal,
             semanal: dados.valor_semanal,

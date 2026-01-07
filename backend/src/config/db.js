@@ -1,5 +1,8 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 require('dotenv').config();
+
+// OID 1082 é o código interno do PostgreSQL para o tipo DATE.
+types.setTypeParser(1082, (str) => str); // Mantém o formato 'YYYY-MM-DD' para datas
 
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('aivencloud')) {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';

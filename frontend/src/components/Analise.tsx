@@ -28,6 +28,95 @@ const MERCADOS: Record<string, string> = {
     'USD': 'América', 'CAD': 'América'
 };
 
+// Configuração dos Limites de Score por Moeda
+// Se uma moeda tiver limites diferentes, basta alterar aqui.
+const LIMITES_MOEDA: Record<string, { forca: number; fraqueza: number }> = {
+    'AUD': { forca: 0.20, fraqueza: -0.20 },
+    'NZD': { forca: 0.20, fraqueza: -0.20 },
+    'CAD': { forca: 0.20, fraqueza: -0.20 },
+    'EUR': { forca: 0.20, fraqueza: -0.20 },
+    'GBP': { forca: 0.20, fraqueza: -0.20 },
+    'CHF': { forca: 0.20, fraqueza: -0.20 },
+    'USD': { forca: 0.20, fraqueza: -0.20 },
+    'JPY': { forca: 0.20, fraqueza: -0.20 },
+};
+const DEFAULT_LIMIT = { forca: 0.20, fraqueza: -0.20 };
+
+// --- HELPERS E CALCULADORAS ---
+
+// Converte valor do banco para número
+const toNum = (val: any) => {
+    if (val === null || val === undefined || val === '') return null;
+    const num = parseFloat(String(val).replace(',', '.'));
+    return isNaN(num) ? null : num;
+};
+
+// Extrai a lista de valores (scores) de um registro baseado no Timeframe
+const getValoresPorTimeframe = (dadoBanco: any, time: string): (number | null)[] => {
+    if (!dadoBanco) return [];
+
+    if (time === 'MN') return [toNum(dadoBanco.valor_mensal)];
+    if (time === 'W1') return [toNum(dadoBanco.valor_semanal)];
+    if (time === 'D1') return [toNum(dadoBanco.valor_diario)];
+
+    if (time === 'H4') {
+        const h4Times = ['00', '04', '08', '12', '16', '20'];
+        return h4Times.map(h => toNum(dadoBanco[`h4_${h}`]));
+    }
+
+    if (time === 'H1') {
+        const h1Times = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+        return h1Times.map(h => toNum(dadoBanco[`h1_${h}`]));
+    }
+
+    return [];
+};
+
+// Lógica central do Ciclo Concluído
+// Percorre a lista de valores e determina o estado final baseando-se na troca de limites
+const calcularEstadoCiclo = (valores: (number | null)[], moeda: string) => {
+    const limites = LIMITES_MOEDA[moeda] || DEFAULT_LIMIT;
+    let ultimoEstado: 'Força' | 'Fraqueza' | null = null;
+
+    for (const valor of valores) {
+        if (valor === null) continue;
+
+        if (valor >= limites.forca) {
+            // Só muda para Força se não estiver em Força (ou se for o primeiro registro relevante)
+            // A lógica "passar pela linha" implica atingir o valor.
+            if (ultimoEstado !== 'Força') {
+                ultimoEstado = 'Força';
+            }
+        } else if (valor <= limites.fraqueza) {
+            if (ultimoEstado !== 'Fraqueza') {
+                ultimoEstado = 'Fraqueza';
+            }
+        }
+    }
+    return ultimoEstado;
+};
+
+// --- MAPA DE CALCULADORAS POR COLUNA ---
+// Aqui é onde você organiza a lógica de cada coluna nova.
+type CalculatorFunction = (valores: (number | null)[], moeda: string) => string | null;
+
+const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
+    "Ciclo Concluído": (valores, moeda) => {
+        return calcularEstadoCiclo(valores, moeda);
+    },
+    
+    "Deve Ciclo": (valores, moeda) => {
+        const cicloAtual = calcularEstadoCiclo(valores, moeda);
+        // Oposto do Ciclo Concluído
+        if (cicloAtual === 'Força') return 'Fraqueza';
+        if (cicloAtual === 'Fraqueza') return 'Força';
+        return null;
+    },
+
+    // Futuras colunas virão aqui:
+    // "Contrução": (valores, moeda) => { ... lógica da construção ... },
+};
+
 interface AnaliseProps {
     onBack: () => void;
 }
@@ -41,8 +130,6 @@ export function Analise({ onBack }: AnaliseProps) {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        // linha incluida para evitar warning (estava dando erro no deploy)
-        if (dadosBrutos.length > 0) console.log("Dados brutos carregados:", dadosBrutos);
         carregarDados();
     }, [selectedDate]);
 
@@ -60,15 +147,6 @@ export function Analise({ onBack }: AnaliseProps) {
         } finally {
             setLoading(false);
         }
-    };
-
-    // --- LÓGICA MOCK ---
-    const getStatus = (_moeda: string, _time: string, _coluna: string) => {
-        // Simulação aleatória de status (Força, Fraqueza ou null)
-        const rand = Math.random();
-        if (rand > 0.6) return 'Força';
-        if (rand < 0.2) return 'Fraqueza';
-        return null; 
     };
 
     const moedasList = ['AUD', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'NZD', 'USD'];
@@ -121,7 +199,12 @@ export function Analise({ onBack }: AnaliseProps) {
                                     moedasList.map((moeda) => (
                                         TIMES.map((time, index) => {
                                             const isLastTime = index === TIMES.length - 1;
-                                            // const dadoBanco = dadosBrutos.find(d => d.moeda === moeda); // (Será usado no futuro)
+                                                
+                                            // 1. Busca dados do banco para esta moeda
+                                            const dadoBanco = dadosBrutos.find(d => d.moeda === moeda);
+                                            
+                                            // 2. Extrai os valores numéricos para o timeframe atual
+                                            const valores = getValoresPorTimeframe(dadoBanco, time);                                            
                                             
                                             return (
                                                 <tr key={`${moeda}-${time}`} className={isLastTime ? styles.rowDivider : ''}>
@@ -142,12 +225,21 @@ export function Analise({ onBack }: AnaliseProps) {
 
                                                     {/* Células Dinâmicas */}
                                                     {COLUNAS.map(col => {
-                                                        const status = getStatus(moeda, time, col);
+                                                        // Busca a função calculadora correta no mapa
+                                                        const calculator = COLUNA_CALCULATORS[col];
+                                                        
+                                                        // Se existir calculadora, executa. Se não, retorna null (vazio).
+                                                        const status = calculator ? calculator(valores, moeda) : null;
+                                                        
+                                                        // Define estilo baseado no resultado
+                                                        let classeEstilo = '';
+                                                        if (status === 'Força') classeEstilo = styles.statusForca;
+                                                        if (status === 'Fraqueza') classeEstilo = styles.statusFraqueza;
                                                         
                                                         return (
                                                             <td key={col}>
                                                                 {status && (
-                                                                    <div className={`${styles.cellStatus} ${status === 'Força' ? styles.statusForca : styles.statusFraqueza}`}>
+                                                                    <div className={`${styles.cellStatus} ${classeEstilo}`}>
                                                                         {status}
                                                                     </div>
                                                                 )}

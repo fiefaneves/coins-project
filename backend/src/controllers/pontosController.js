@@ -288,16 +288,58 @@ const buscarAnalisePorData = async (req, res) => {
     if (!data) return res.status(400).json({ message: 'Data é obrigatória' });
 
     try {
-        // Busca registros da data que NÃO foram deletados
+        // 1. Busca os dados do dia selecionado
         const result = await pool.query(
             `SELECT * FROM entradas_mercado 
              WHERE data_registro = $1 AND deletado = FALSE
              ORDER BY moeda ASC`,
             [data]
         );
-        res.json(result.rows);
+
+        // 2. Para cada moeda, busca o histórico anterior (para MN, W1, D1) e o Intradiário (H4, H1)
+        const analisesCompletas = await Promise.all(result.rows.map(async (entrada) => {
+            
+            // Busca Histórico: Pegamos os últimos 30 registros ATÉ a data atual
+            const resHistorico = await pool.query(`
+                SELECT data_registro, valor_mensal, valor_semanal, valor_diario 
+                FROM entradas_mercado 
+                WHERE moeda = $1 AND data_registro <= $2 AND deletado = FALSE
+                ORDER BY data_registro DESC
+                LIMIT 30
+            `, [entrada.moeda, data]);
+
+            // 2. Invertemos (.reverse) no JavaScript para ficar cronológico (Antigo -> Novo)
+            // Isso é essencial para o cálculo do ciclo funcionar na ordem certa.
+            const historicoOrdenado = resHistorico.rows.reverse();
+
+            const resH4 = await pool.query('SELECT hora, valor FROM entradas_h4 WHERE entrada_id = $1 ORDER BY hora ASC', [entrada.id]);
+            const resH1 = await pool.query('SELECT hora, valor FROM entradas_h1 WHERE entrada_id = $1 ORDER BY hora ASC', [entrada.id]);
+
+            const entradaCompleta = { ...entrada };
+            
+            entradaCompleta.historico_mn = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_mensal
+            }));
+            entradaCompleta.historico_w1 = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_semanal
+            }));
+            entradaCompleta.historico_d1 = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_diario
+            }));
+
+            resH4.rows.forEach(r => entradaCompleta[`h4_${r.hora}`] = r.valor);
+            resH1.rows.forEach(r => entradaCompleta[`h1_${r.hora}`] = r.valor);
+
+            return entradaCompleta;
+        }));
+
+        res.json(analisesCompletas);
+
     } catch (error) {
-        console.error(error);
+        console.error("Erro no buscarAnalisePorData:", error);
         res.status(500).json({ message: 'Erro ao buscar análise' });
     }
 };

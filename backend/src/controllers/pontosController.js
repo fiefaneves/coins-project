@@ -301,7 +301,7 @@ const buscarAnalisePorData = async (req, res) => {
             
             // Busca Histórico: Pegamos os últimos 30 registros ATÉ a data atual
             const resHistorico = await pool.query(`
-                SELECT valor_mensal, valor_semanal, valor_diario 
+                SELECT data_registro, valor_mensal, valor_semanal, valor_diario 
                 FROM entradas_mercado 
                 WHERE moeda = $1 AND data_registro <= $2 AND deletado = FALSE
                 ORDER BY data_registro DESC
@@ -317,9 +317,18 @@ const buscarAnalisePorData = async (req, res) => {
 
             const entradaCompleta = { ...entrada };
             
-            entradaCompleta.historico_mn = historicoOrdenado.map(r => r.valor_mensal);
-            entradaCompleta.historico_w1 = historicoOrdenado.map(r => r.valor_semanal);
-            entradaCompleta.historico_d1 = historicoOrdenado.map(r => r.valor_diario);
+            entradaCompleta.historico_mn = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_mensal
+            }));
+            entradaCompleta.historico_w1 = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_semanal
+            }));
+            entradaCompleta.historico_d1 = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_diario
+            }));
 
             resH4.rows.forEach(r => entradaCompleta[`h4_${r.hora}`] = r.valor);
             resH1.rows.forEach(r => entradaCompleta[`h1_${r.hora}`] = r.valor);

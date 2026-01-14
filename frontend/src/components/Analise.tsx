@@ -3,6 +3,8 @@ import axios from 'axios';
 import styles from '../css/Analise.module.css';
 import dashboardStyles from '../css/Dashboard.module.css'; 
 
+// --- CONFIGURAÇÕES GLOBAIS ---
+
 const COLUNAS = [
     "Ciclo Concluído", 
     "Deve Ciclo", 
@@ -51,22 +53,53 @@ const toNum = (val: any) => {
     return isNaN(num) ? null : num;
 };
 
+// Interface para o ponto histórico
+interface PontoHistorico {
+    data: string;
+    valor: number | null;
+}
+
+// Helper para formatar data
+const fmtData = (d: any) => {
+    if (!d) return '';
+    if (typeof d === 'string' && d.includes('-')) return d.split('T')[0];
+    return String(d);
+};
+
 // Extrai a lista de valores (scores) de um registro baseado no Timeframe
-const getValoresPorTimeframe = (dadoBanco: any, time: string): (number | null)[] => {
+const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: string): PontoHistorico[] => {
     if (!dadoBanco) return [];
 
-    if (time === 'MN') return [toNum(dadoBanco.valor_mensal)];
-    if (time === 'W1') return [toNum(dadoBanco.valor_semanal)];
-    if (time === 'D1') return [toNum(dadoBanco.valor_diario)];
+    let lista: any[] = [];
 
+    // Usamos o histórico diretamente, pois ele já contém o valor do dia/mês atual (devido ao filtro <= data no backend).
+    if (time === 'MN') lista = dadoBanco.historico_mn || [];
+    if (time === 'W1') lista = dadoBanco.historico_w1 || [];
+    if (time === 'D1') lista = dadoBanco.historico_d1 || [];
+
+    if (['MN', 'W1', 'D1'].includes(time)) {
+        return lista.map((item: any) => ({
+            data: fmtData(item.data),
+            valor: toNum(item.valor)
+        }));
+    }
+
+    // Para H4 e H1, o backend não manda histórico de dias anteriores, 
+    // então montamos a lista apenas com as velas do dia atual.
     if (time === 'H4') {
         const h4Times = ['00', '04', '08', '12', '16', '20'];
-        return h4Times.map(h => toNum(dadoBanco[`h4_${h}`]));
+        return h4Times.map(h => ({
+            data: `${dataReferencia} ${h}:00`, // Ex: 2026-06-01 04:00
+            valor: toNum(dadoBanco[`h4_${h}`])
+        }));    
     }
 
     if (time === 'H1') {
         const h1Times = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-        return h1Times.map(h => toNum(dadoBanco[`h1_${h}`]));
+        return h1Times.map(h => ({
+            data: `${dataReferencia} ${h}:00`,
+            valor: toNum(dadoBanco[`h1_${h}`])
+        }));
     }
 
     return [];
@@ -74,31 +107,40 @@ const getValoresPorTimeframe = (dadoBanco: any, time: string): (number | null)[]
 
 // Lógica central do Ciclo Concluído
 // Percorre a lista de valores e determina o estado final baseando-se na troca de limites
-const calcularEstadoCiclo = (valores: (number | null)[], moeda: string) => {
+const calcularEstadoCiclo = (historico: PontoHistorico[], moeda: string) => {
     const limites = LIMITES_MOEDA[moeda] || DEFAULT_LIMIT;
+
     let ultimoEstado: 'Força' | 'Fraqueza' | null = null;
+    let dataInicio: string | null = null;
 
-    for (const valor of valores) {
-        if (valor === null) continue;
+    for (const ponto of historico) {
+        if (ponto.valor === null) continue;
 
-        if (valor >= limites.forca) {
-            // Só muda para Força se não estiver em Força (ou se for o primeiro registro relevante)
-            // A lógica "passar pela linha" implica atingir o valor.
-            if (ultimoEstado !== 'Força') {
-                ultimoEstado = 'Força';
-            }
-        } else if (valor <= limites.fraqueza) {
-            if (ultimoEstado !== 'Fraqueza') {
-                ultimoEstado = 'Fraqueza';
-            }
+        let novoEstado: 'Força' | 'Fraqueza' | null = ultimoEstado;
+
+        if (ponto.valor >= limites.forca) {
+            novoEstado = 'Força';
+        } else if (ponto.valor <= limites.fraqueza) {
+            novoEstado = 'Fraqueza';
+        }
+
+        // REGRA DE PERSISTÊNCIA:
+        // Só atualizamos a Data se houve uma MUDANÇA REAL de estado (Ex: Null -> Força, ou Fraqueza -> Força)
+        // Se estava 'Força', caiu pra 0.10 (Neutro) e subiu pra 0.25 (Força) de novo,
+        // o 'novoEstado' será 'Força', 'ultimoEstado' era 'Força'. 
+        // Entra no if? NÃO. Mantém a data antiga.
+        if (novoEstado !== null && novoEstado !== ultimoEstado) {
+            ultimoEstado = novoEstado;
+            dataInicio = ponto.data;
         }
     }
-    return ultimoEstado;
+
+    return { status: ultimoEstado, dataInicio };
 };
 
 // --- MAPA DE CALCULADORAS POR COLUNA ---
 // Aqui é onde você organiza a lógica de cada coluna nova.
-type CalculatorFunction = (valores: (number | null)[], moeda: string) => string | null;
+type CalculatorFunction = (valores: PontoHistorico[], moeda: string) => any;
 
 const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
     "Ciclo Concluído": (valores, moeda) => {
@@ -106,10 +148,10 @@ const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
     },
     
     "Deve Ciclo": (valores, moeda) => {
-        const cicloAtual = calcularEstadoCiclo(valores, moeda);
+        const { status } = calcularEstadoCiclo(valores, moeda);
         // Oposto do Ciclo Concluído
-        if (cicloAtual === 'Força') return 'Fraqueza';
-        if (cicloAtual === 'Fraqueza') return 'Força';
+        if (status === 'Força') return 'Fraqueza';
+        if (status === 'Fraqueza') return 'Força';
         return null;
     },
 
@@ -204,7 +246,7 @@ export function Analise({ onBack }: AnaliseProps) {
                                             const dadoBanco = dadosBrutos.find(d => d.moeda === moeda);
                                             
                                             // 2. Extrai os valores numéricos para o timeframe atual
-                                            const valores = getValoresPorTimeframe(dadoBanco, time);                                            
+                                            const valores = getValoresPorTimeframe(dadoBanco, time, selectedDate);                      
                                             
                                             return (
                                                 <tr key={`${moeda}-${time}`} className={isLastTime ? styles.rowDivider : ''}>
@@ -225,22 +267,40 @@ export function Analise({ onBack }: AnaliseProps) {
 
                                                     {/* Células Dinâmicas */}
                                                     {COLUNAS.map(col => {
-                                                        // Busca a função calculadora correta no mapa
+                                                        // Busca a função calculadora correta
                                                         const calculator = COLUNA_CALCULATORS[col];
                                                         
-                                                        // Se existir calculadora, executa. Se não, retorna null (vazio).
-                                                        const status = calculator ? calculator(valores, moeda) : null;
+                                                        // REGRA DO DELAY:
+                                                        const valoresParaCalculo = valores.slice(0, -1);
                                                         
-                                                        // Define estilo baseado no resultado
+                                                        // Se não sobrar nada, retorna vazio
+                                                        if (valoresParaCalculo.length === 0) return <td key={col}></td>; 
+
+                                                        // Calcula o resultado
+                                                        const rawResult = calculator ? calculator(valoresParaCalculo, moeda) : null;
+                                                        
+                                                        // --- LÓGICA DE EXTRAÇÃO DO TEXTO ---
+                                                        let textoExibido = null;
+
+                                                        if (col === "Ciclo Concluído" && rawResult) {
+                                                            // Aqui o resultado é um Objeto { status, dataInicio }
+                                                            textoExibido = rawResult.status;
+                                                        } 
+                                                        else {
+                                                            // Para "Deve Ciclo" e outros, o resultado já é uma String direta
+                                                            textoExibido = rawResult;
+                                                        }
+
+                                                        // --- ESTILIZAÇÃO ---
                                                         let classeEstilo = '';
-                                                        if (status === 'Força') classeEstilo = styles.statusForca;
-                                                        if (status === 'Fraqueza') classeEstilo = styles.statusFraqueza;
+                                                        if (textoExibido === 'Força') classeEstilo = styles.statusForca;
+                                                        if (textoExibido === 'Fraqueza') classeEstilo = styles.statusFraqueza;
                                                         
                                                         return (
                                                             <td key={col}>
-                                                                {status && (
+                                                                {textoExibido && (
                                                                     <div className={`${styles.cellStatus} ${classeEstilo}`}>
-                                                                        {status}
+                                                                        {textoExibido}
                                                                     </div>
                                                                 )}
                                                             </td>

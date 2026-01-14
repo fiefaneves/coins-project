@@ -9,15 +9,65 @@ const salvarPonto = async (req, res) => {
         await client.query('BEGIN'); // Inicia transação
 
         // 1. Removemos 'tipo' da desestruturação
-        const { data, moeda, mensal, semanal, diario } = req.body;
+        let { data, moeda, mensal, semanal, diario } = req.body;
         const userId = req.userId;
+
+        // 1. GARANTE FORMATO ISO (YYYY-MM-DD) ANTES DE TUDO
+        // Isso corrige erros se o front enviar '14/01/2026'
+        const dataFormatada = formatarDataParaBanco(data); 
+
+        // 2. LÓGICA DE PREENCHIMENTO AUTOMÁTICO
+        // Usamos a data formatada para criar o objeto Date com segurança
+        // Adicionamos "T12:00:00" para evitar problemas de fuso horário (UTC) virando o dia anterior
+        const dataObj = new Date(dataFormatada + 'T12:00:00'); 
+        
+        const diaMes = dataObj.getDate(); 
+        const diaSemana = dataObj.getDay(); // 0 = Domingo
+
+        const isPrimeiroDiaDoMes = (diaMes === 1);
+        const isDomingo = (diaSemana === 0);
+
+        console.log(`[Auto] Data: ${dataFormatada} | Dia: ${diaMes} | Domingo? ${isDomingo}`);
+
+        // Se NÃO é dia de mudança (Dia 01 ou Domingo), busca o anterior
+        if (!isPrimeiroDiaDoMes || !isDomingo) {
+            
+            // Busca o último registro VÁLIDO (não deletado) anterior a esta data
+            const queryAnterior = await client.query(`
+                SELECT valor_mensal, valor_semanal 
+                FROM entradas_mercado 
+                WHERE moeda = $1 
+                  AND data_registro < $2 
+                  AND deletado = FALSE
+                ORDER BY data_registro DESC 
+                LIMIT 1
+            `, [moeda, dataFormatada]);
+
+            if (queryAnterior.rows.length > 0) {
+                const ultimoRegistro = queryAnterior.rows[0];
+                console.log(`[Auto] Encontrado registro anterior: MN=${ultimoRegistro.valor_mensal}, W1=${ultimoRegistro.valor_semanal}`);
+
+                // REGRA MENSAL: Se não for dia 01, copia o anterior (mesmo que o usuário tenha mandado vazio)
+                if (!isPrimeiroDiaDoMes) {
+                    mensal = ultimoRegistro.valor_mensal;
+                    console.log(`[Auto] Aplicando Mensal: ${mensal}`);
+                }
+
+                // REGRA SEMANAL: Se não for Domingo, copia o anterior
+                if (!isDomingo) {
+                    semanal = ultimoRegistro.valor_semanal;
+                    console.log(`[Auto] Aplicando Semanal: ${semanal}`);
+                }
+            } else {
+                console.log(`[Auto] Nenhum registro anterior encontrado para copiar.`);
+            }
+        }
+        // ----------------------------------------------------
 
         const horaSistema = new Date().toLocaleTimeString('pt-BR', { 
             timeZone: 'America/Sao_Paulo', 
             hour12: false 
         });
-
-        const dataFormatada = formatarDataParaBanco(data);
 
         // Verifica se já existe entrada para Moeda + Data
         const checkExistente = await client.query(
@@ -288,18 +338,96 @@ const buscarAnalisePorData = async (req, res) => {
     if (!data) return res.status(400).json({ message: 'Data é obrigatória' });
 
     try {
-        // Busca registros da data que NÃO foram deletados
+        // 1. Busca os dados do dia selecionado
         const result = await pool.query(
             `SELECT * FROM entradas_mercado 
              WHERE data_registro = $1 AND deletado = FALSE
              ORDER BY moeda ASC`,
             [data]
         );
-        res.json(result.rows);
+
+        // 2. Para cada moeda, busca o histórico anterior (para MN, W1, D1) e o Intradiário (H4, H1)
+        const analisesCompletas = await Promise.all(result.rows.map(async (entrada) => {
+            
+            // Busca Histórico: Pegamos os últimos 30 registros ATÉ a data atual
+            const resHistorico = await pool.query(`
+                SELECT data_registro, valor_mensal, valor_semanal, valor_diario 
+                FROM entradas_mercado 
+                WHERE moeda = $1 AND data_registro <= $2 AND deletado = FALSE
+                ORDER BY data_registro DESC
+                LIMIT 30
+            `, [entrada.moeda, data]);
+
+            // 2. Invertemos (.reverse) no JavaScript para ficar cronológico (Antigo -> Novo)
+            // Isso é essencial para o cálculo do ciclo funcionar na ordem certa.
+            const historicoOrdenado = resHistorico.rows.reverse();
+
+            const resH4 = await pool.query('SELECT hora, valor FROM entradas_h4 WHERE entrada_id = $1 ORDER BY hora ASC', [entrada.id]);
+            const resH1 = await pool.query('SELECT hora, valor FROM entradas_h1 WHERE entrada_id = $1 ORDER BY hora ASC', [entrada.id]);
+
+            const entradaCompleta = { ...entrada };
+            
+            entradaCompleta.historico_mn = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_mensal
+            }));
+            entradaCompleta.historico_w1 = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_semanal
+            }));
+            entradaCompleta.historico_d1 = historicoOrdenado.map(r =>  ({
+                data: r.data_registro,
+                valor: r.valor_diario
+            }));
+
+            resH4.rows.forEach(r => entradaCompleta[`h4_${r.hora}`] = r.valor);
+            resH1.rows.forEach(r => entradaCompleta[`h1_${r.hora}`] = r.valor);
+
+            return entradaCompleta;
+        }));
+
+        res.json(analisesCompletas);
+
     } catch (error) {
-        console.error(error);
+        console.error("Erro no buscarAnalisePorData:", error);
         res.status(500).json({ message: 'Erro ao buscar análise' });
     }
 };
 
-module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData };
+const buscarUltimoRegistro = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { moeda, data } = req.query;
+
+        if (!moeda || !data) {
+            return res.status(400).json({ message: "Moeda e Data são obrigatórios" });
+        }
+
+        const dataFormatada = formatarDataParaBanco(data);
+
+        // Busca o último registro VÁLIDO anterior à data selecionada
+        const query = await client.query(`
+            SELECT valor_mensal, valor_semanal 
+            FROM entradas_mercado 
+            WHERE moeda = $1 
+              AND data_registro < $2 
+              AND deletado = FALSE
+            ORDER BY data_registro DESC 
+            LIMIT 1
+        `, [moeda, dataFormatada]);
+
+        if (query.rows.length > 0) {
+            res.json(query.rows[0]); 
+        } else {
+            res.json({ valor_mensal: '', valor_semanal: '' }); 
+        }
+
+    } catch (error) {
+        console.error("Erro ao buscar último registro:", error);
+        res.status(500).json({ message: "Erro interno" });
+    } finally {
+        client.release();
+    }
+};
+
+module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData, buscarUltimoRegistro };

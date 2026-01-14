@@ -4,17 +4,18 @@ import axios from 'axios';
 import styles from '../css/DataForm.module.css';
 import { Modal } from './Modal';
 
+// Definição dos tipos do formulário
 type FormData = {
     data: string;
     moeda: string;
     mensal: string;
     semanal: string;
     diario: string;
-    [key: string]: string; 
+    [key: string]: string; // Permite chaves dinâmicas como h4_00, h1_15...
 };
 
 interface DataFormProps {
-    editingId?: number | null; 
+    editingId?: number | null; // Se vier ID, é edição. Se null, é novo.
     onSuccess?: () => void;   
 }
 
@@ -24,6 +25,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const hoje = new Date();
     const dataPadrao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
 
+    // Estado inicial com campos dinâmicos para H1
     const [formData, setFormData] = useState<FormData>({
         data: dataPadrao,
         moeda: 'AUD',
@@ -41,15 +43,13 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const [isError, setIsError] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
 
-    // Definir URL da API (ajuste se necessário)
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-    // 1. Carrega dados se for Edição
+    // Carrega dados se for Edição
     useEffect(() => {
         if (editingId) {
             setIsLoading(true);
             const token = localStorage.getItem('user_token');
             
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
             axios.get(`${apiUrl}/api/pontos/${editingId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
@@ -76,77 +76,6 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
         }
     }, [editingId]);
     
-    useEffect(() => {
-        const autoFillCampos = async () => {
-            // Se estiver editando (editingId existe), geralmente não queremos mudar os dados automaticamente
-            // a menos que você queira permitir isso explicitamente. Por padrão, bloqueamos na edição.
-            if (editingId) return; 
-            
-            if (!formData.data || !formData.moeda) return;
-
-            const dateObj = new Date(formData.data + 'T12:00:00');
-            const diaMes = dateObj.getDate();
-            const diaSemana = dateObj.getDay(); // 0 = Domingo
-
-            const isPrimeiroDia = (diaMes === 1);
-            const isDomingo = (diaSemana === 0);
-
-            // Se for dia 01 E Domingo, é tudo novo, não busca nada.
-            if (isPrimeiroDia && isDomingo) return;
-
-            try {
-                const token = localStorage.getItem('user_token');
-                const res = await axios.get(`${apiUrl}/api/pontos/ultimo`, {
-                    params: { 
-                        moeda: formData.moeda, 
-                        data: formData.data 
-                    },
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                const { valor_mensal, valor_semanal } = res.data;
-
-                // Helper para tratar valores nulos ou undefined como string vazia
-                const safeStr = (val: any) => (val === null || val === undefined) ? '' : String(val);
-
-                setFormData(prev => {
-                    const novoEstado = { ...prev };
-                    let mudou = false;
-
-                    // LÓGICA CORRIGIDA:
-                    // Removemos a verificação "&& valor !== ''". 
-                    // Agora, se o banco mandar vazio (porque não achou registro), nós limpamos o campo.
-                    
-                    // REGRA MENSAL: Se não for dia 01, aplica o valor do banco (mesmo se for vazio)
-                    if (!isPrimeiroDia && valor_mensal !== undefined) {
-                        const novoMensal = safeStr(valor_mensal);
-                        if (novoEstado.mensal !== novoMensal) {
-                            novoEstado.mensal = novoMensal;
-                            mudou = true;
-                        }
-                    }
-
-                    // REGRA SEMANAL: Se não for Domingo, aplica o valor do banco (mesmo se for vazio)
-                    if (!isDomingo && valor_semanal !== undefined) {
-                        const novoSemanal = safeStr(valor_semanal);
-                        if (novoEstado.semanal !== novoSemanal) {
-                            novoEstado.semanal = novoSemanal;
-                            mudou = true;
-                        }
-                    }
-
-                    return mudou ? novoEstado : prev;
-                });
-
-            } catch (error) {
-                console.log("Auto-fill info:", error);
-            }
-        };
-
-        autoFillCampos();
-
-    }, [formData.data, formData.moeda, editingId]);
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prevState => ({ ...prevState, [name]: value }));
@@ -179,6 +108,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             };
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
             if (editingId) {
                 await axios.put(`${apiUrl}/api/pontos/${editingId}`, dadosParaEnviar, { headers });

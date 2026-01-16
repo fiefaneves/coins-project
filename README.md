@@ -71,8 +71,8 @@ O **Coins System** é uma aplicação web desenvolvida para substituir planilhas
 
 ---
 
-## 4. Estrutura
-
+## 4. Estrutura do projeto
+```
 coins-project/
 ├── backend/            # API (Node.js + Express)
 │   ├── src/
@@ -90,7 +90,7 @@ coins-project/
 │
 ├── install.bat         # Script de Instalação (Windows)
 └── start.bat           # Script de Inicialização (Windows)
-
+```
 ---
 
 ## 5. Como Rodar o Projeto (Windows)

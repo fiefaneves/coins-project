@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import styles from '../css/Analise.module.css';
 import dashboardStyles from '../css/Dashboard.module.css'; 
@@ -8,7 +8,7 @@ import dashboardStyles from '../css/Dashboard.module.css';
 const COLUNAS = [
     "Ciclo Concluído", 
     "Deve Ciclo", 
-    "Contrução", 
+    "Construção", 
     "Acúmulo", 
     "Chão Acúmulo", 
     "Teto Acúmulo", 
@@ -170,6 +170,37 @@ export function Analise({ onBack }: AnaliseProps) {
     const [selectedDate, setSelectedDate] = useState(formattedToday);
     const [dadosBrutos, setDadosBrutos] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showConfig, setShowConfig] = useState(false);
+    const configRef = useRef<HTMLDivElement>(null);
+
+    // Configuração inicial
+    const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>({
+        "Ciclo Concluído": false,
+        "Deve Ciclo": true,
+        "Construção": true,
+        "Acúmulo": true,
+        "Chão Acúmulo": true,
+        "Teto Acúmulo": true,
+        "Mudou": false,
+        "Flutuante": true,
+        "Flutuante no Sentido": true,
+        "Flutuante antes 21h": true,
+        "Ponto de Parada": true,
+        "Quebra de Score": true,
+        "Permissão": true,
+        "Não Operar": true
+    });
+
+    // Fecha o menu se clicar fora
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (configRef.current && !configRef.current.contains(event.target as Node)) {
+                setShowConfig(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         carregarDados();
@@ -191,6 +222,16 @@ export function Analise({ onBack }: AnaliseProps) {
         }
     };
 
+    const toggleColumn = (col: string) => {
+        setVisibleCols(prev => ({
+            ...prev,
+            [col]: !prev[col]
+        }));
+    };
+
+    // Filtra quais colunas serão renderizadas
+    const activeColumns = COLUNAS.filter(col => visibleCols[col]);
+
     const moedasList = ['AUD', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'NZD', 'USD'];
 
     return (
@@ -199,21 +240,51 @@ export function Analise({ onBack }: AnaliseProps) {
                 
                 {/* Header */}
                 <div className={dashboardStyles.header}>
-                    <div>
+                    <div style={{display: 'flex', alignItems: 'center'}}>
                         <button onClick={onBack} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', marginRight:'10px'}}>
                             ←
                         </button>
                         <span className={dashboardStyles.title}>Análise Técnica</span>
                     </div>
-                    
-                    <div>
-                        <span className={styles.dateLabel}>Data de Referência:</span>
-                        <input 
-                            type="date" 
-                            className={styles.dateInput}
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                        />
+
+                    {/* Controles da Direita */}
+                    <div style={{display: 'flex', alignItems: 'center'}}>
+                        
+                        {/* --- MENU DE COLUNAS --- */}
+                        <div className={styles.configContainer} ref={configRef}>
+                            <button 
+                                className={styles.configButton} 
+                                onClick={() => setShowConfig(!showConfig)}
+                            >
+                                ⚙️ Colunas
+                            </button>
+
+                            {showConfig && (
+                                <div className={styles.dropdownMenu}>
+                                    {COLUNAS.map(col => (
+                                        <label key={col} className={styles.checkboxItem}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={visibleCols[col]} 
+                                                onChange={() => toggleColumn(col)}
+                                            />
+                                            {col}
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Seletor de Data */}
+                        <div>
+                            <span className={styles.dateLabel}>Data:</span>
+                            <input 
+                                type="date" 
+                                className={styles.dateInput}
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -223,75 +294,60 @@ export function Analise({ onBack }: AnaliseProps) {
                             <thead>
                                 <tr>
                                     {/* Colunas Fixas */}
-                                    <th style={{width: '90px'}}>Data</th>
-                                    <th style={{width: '60px'}}>Moeda</th>
-                                    <th style={{width: '80px'}}>Mercado</th>
-                                    <th style={{width: '50px'}}>Time</th>
+                                    <th style={{width: '90px', left: 0, zIndex: 20}}>Data</th>
+                                    <th style={{width: '60px', left: '90px', zIndex: 20}}>Moeda</th>
+                                    <th style={{width: '80px', left: '150px', zIndex: 20}}>Mercado</th>
+                                    <th style={{width: '50px', left: '230px', zIndex: 20}}>Time</th>
                                     
-                                    {/* Renderiza todas as colunas da lista atualizada */}
-                                    {COLUNAS.map(col => (
+                                    {/* Renderiza apenas colunas ativas */}
+                                    {activeColumns.map(col => (
                                         <th key={col}>{col}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={COLUNAS.length + 4} style={{padding:'2rem'}}>Carregando análise...</td></tr>
+                                    <tr><td colSpan={activeColumns.length + 4} style={{padding:'2rem'}}>Carregando análise...</td></tr>
                                 ) : (
                                     moedasList.map((moeda) => (
                                         TIMES.map((time, index) => {
                                             const isLastTime = index === TIMES.length - 1;
-                                                
-                                            // 1. Busca dados do banco para esta moeda
                                             const dadoBanco = dadosBrutos.find(d => d.moeda === moeda);
-                                            
-                                            // 2. Extrai os valores numéricos para o timeframe atual
                                             const valores = getValoresPorTimeframe(dadoBanco, time, selectedDate);                      
                                             
                                             return (
                                                 <tr key={`${moeda}-${time}`} className={isLastTime ? styles.rowDivider : ''}>
-                                                    <td className={styles.colFixed}>
+                                                    {/* Fixando as primeiras colunas no scroll horizontal */}
+                                                    <td className={styles.colFixed} style={{position: 'sticky', left: 0, zIndex: 15}}>
                                                         {index === 0 ? selectedDate.split('-').reverse().join('/') : ''}
                                                     </td>
-                                                    <td className={styles.colFixed}>
+                                                    <td className={styles.colFixed} style={{position: 'sticky', left: '90px', zIndex: 15}}>
                                                         {index === 0 ? (
                                                             <span className={`${styles.currencyBadge} ${styles[moeda]}`}>
                                                                 {moeda}
                                                             </span>
                                                         ) : ''}
                                                     </td>
-                                                    <td className={styles.colFixed}>
+                                                    <td className={styles.colFixed} style={{position: 'sticky', left: '150px', zIndex: 15}}>
                                                         {index === 0 ? MERCADOS[moeda] : ''}
                                                     </td>
-                                                    <td className={styles.colFixed} style={{fontWeight:'bold'}}>{time}</td>
+                                                    <td className={styles.colFixed} style={{fontWeight:'bold', position: 'sticky', left: '230px', zIndex: 15}}>
+                                                        {time}
+                                                    </td>
 
-                                                    {/* Células Dinâmicas */}
-                                                    {COLUNAS.map(col => {
-                                                        // Busca a função calculadora correta
+                                                    {/* Células Dinâmicas (Apenas Ativas) */}
+                                                    {activeColumns.map(col => {
                                                         const calculator = COLUNA_CALCULATORS[col];
-                                                        
-                                                        // REGRA DO DELAY:
                                                         const valoresParaCalculo = valores.slice(0, -1);
                                                         
-                                                        // Se não sobrar nada, retorna vazio
                                                         if (valoresParaCalculo.length === 0) return <td key={col}></td>; 
 
-                                                        // Calcula o resultado
                                                         const rawResult = calculator ? calculator(valoresParaCalculo, moeda) : null;
                                                         
-                                                        // --- LÓGICA DE EXTRAÇÃO DO TEXTO ---
                                                         let textoExibido = null;
+                                                        if (col === "Ciclo Concluído" && rawResult) textoExibido = rawResult.status;
+                                                        else textoExibido = rawResult;
 
-                                                        if (col === "Ciclo Concluído" && rawResult) {
-                                                            // Aqui o resultado é um Objeto { status, dataInicio }
-                                                            textoExibido = rawResult.status;
-                                                        } 
-                                                        else {
-                                                            // Para "Deve Ciclo" e outros, o resultado já é uma String direta
-                                                            textoExibido = rawResult;
-                                                        }
-
-                                                        // --- ESTILIZAÇÃO ---
                                                         let classeEstilo = '';
                                                         if (textoExibido === 'Força') classeEstilo = styles.statusForca;
                                                         if (textoExibido === 'Fraqueza') classeEstilo = styles.statusFraqueza;

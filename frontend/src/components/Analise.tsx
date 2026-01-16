@@ -86,7 +86,7 @@ const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: st
     return [];
 };
 
-// --- LÓGICA DE CICLO SIMPLIFICADA ---
+// --- LÓGICA DE CICLO ---
 const calcularEstadoCiclo = (historico: PontoHistorico[]) => {
     // Agora usa as constantes globais, ignorando qual é a moeda
     let ultimoEstado: 'Força' | 'Fraqueza' | null = null;
@@ -108,20 +108,40 @@ const calcularEstadoCiclo = (historico: PontoHistorico[]) => {
 };
 
 // --- CALCULADORAS ---
-// (Removemos o parametro 'moeda' que não é mais usado no calculo de ciclo)
 type CalculatorFunction = (valores: PontoHistorico[], moeda: string) => any;
 
 const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
-    "Ciclo Concluído": (valores) => calcularEstadoCiclo(valores),
+    "Ciclo Concluído": (valores) => {
+        const valoresConsolidados = valores.slice(0, -1);
+        return calcularEstadoCiclo(valoresConsolidados);
+    },
     
     "Deve Ciclo": (valores) => {
-        const { status } = calcularEstadoCiclo(valores);
+        const valoresConsolidados = valores.slice(0, -1);
+        const { status } = calcularEstadoCiclo(valoresConsolidados);
+        
         if (status === 'Força') return 'Fraqueza';
         if (status === 'Fraqueza') return 'Força';
         return null;
     },
     
-    // Futuras lógicas podem usar 'moeda' se necessário, por isso mantive na assinatura do tipo
+    "Flutuante": (valores) => {
+        // Remove nulos para garantir que pegamos os últimos valores reais
+        const validos = valores.filter(v => v.valor !== null);
+        
+        // Precisa de pelo menos 2 registros para comparar
+        if (validos.length < 2) return null;
+
+        const ultimo = validos[validos.length - 1].valor!;
+        const penultimo = validos[validos.length - 2].valor!;
+
+        if (ultimo > penultimo) return 'Força';
+        if (ultimo < penultimo) return 'Fraqueza';
+        
+        return null; // Se for igual, mantém neutro (vazio)
+    }
+
+    // Futuras lógicas
 };
 
 interface AnaliseProps {
@@ -300,19 +320,19 @@ export function Analise({ onBack }: AnaliseProps) {
 
                                                     {activeColumns.map(col => {
                                                         const calculator = COLUNA_CALCULATORS[col];
-                                                        const valoresParaCalculo = valores.slice(0, -1);
-                                                        
-                                                        if (valoresParaCalculo.length === 0) return <td key={col}></td>; 
 
-                                                        const rawResult = calculator ? calculator(valoresParaCalculo, moeda) : null;
-                                                        
                                                         let textoExibido = null;
-                                                        if (col === "Ciclo Concluído" && rawResult) textoExibido = rawResult.status;
-                                                        else textoExibido = rawResult;
-
                                                         let classeEstilo = '';
-                                                        if (textoExibido === 'Força') classeEstilo = styles.statusForca;
-                                                        if (textoExibido === 'Fraqueza') classeEstilo = styles.statusFraqueza;
+
+                                                        if (valores.length > 0) {
+                                                            const rawResult = calculator ? calculator(valores, moeda) : null;
+
+                                                            if (col === "Ciclo Concluído" && rawResult) textoExibido = rawResult.status;
+                                                            else textoExibido = rawResult;
+
+                                                            if (textoExibido === 'Força') classeEstilo = styles.statusForca;
+                                                            if (textoExibido === 'Fraqueza') classeEstilo = styles.statusFraqueza;
+                                                        }
                                                         
                                                         return (
                                                             <td key={col}>

@@ -2,10 +2,16 @@
 
 ## 1. Introdução
 
-### 1.1. Visão Geral do Projeto
-O projeto consiste em uma aplicação web Fullstack (React + Node.js) desenvolvida para substituir planilhas de análise manual de mercado financeiro (Forex). O sistema centraliza a entrada de dados técnicos e macroeconômicos, armazena-os de forma segura em nuvem e prepara a base para um motor de cálculo de sinais técnicos (Ciclos, Contrações, Acúmulos).
+### 1.1. Visão Geral
+O **Coins System** é uma aplicação web desenvolvida para substituir planilhas manuais de análise técnica no mercado financeiro (Forex). O sistema centraliza a entrada de dados, armazena histórico técnico (H1, H4, Diário, Semanal, Mensal) e processa automaticamente indicadores de força e fraqueza das moedas.
 
-Atualmente, o sistema já conta com autenticação segura, dashboard de gerenciamento e formulários complexos para registro de dados em timeframes H1 (horário) e H4 (4 horas).
+### 1.2. Principais Funcionalidades
+* **Dashboard Interativo:** Visualização rápida das últimas entradas com filtro dinâmico por moeda.
+* **Formulário Inteligente de entrada inteligente;**
+* **Matriz de Análise Técnica:**
+    * Cálculo automático de **Ciclos** (Força/Fraqueza) baseado em thresholds (±0.20).
+    * Indicador **Flutuante**: Compara a força atual com o fechamento anterior instantaneamente.
+    * Configuração de visualização: Oculte/Mostre colunas conforme a necessidade.
 
 ### 1.2. Objetivos Principais
 - **Centralizar Dados**: Substituir planilhas locais por um banco de dados relacional na nuvem (PostgreSQL/Aiven).
@@ -17,11 +23,11 @@ Atualmente, o sistema já conta com autenticação segura, dashboard de gerencia
 
 ## 2. Tecnologias Utilizadas
 
-- **Frontend**: React (Vite), TypeScript, CSS Modules, React Router DOM.
+- **Frontend**: React (Vite), TypeScript, CSS Modules.
 - **Backend**: Node.js, Express.
 - **Banco de Dados**: PostgreSQL (Hospedado na Aiven).
 - **Autenticação**: JSON Web Token (JWT) e Bcrypt.
-- **Driver de Banco**: node-postgres (`pg`).
+- **Driver de Banco**: node-postgres (`pg`) com `dotenv`.
 
 ---
 
@@ -32,36 +38,58 @@ Atualmente, o sistema já conta com autenticação segura, dashboard de gerencia
 - [x] Criptografia de senha utilizando `bcrypt`.
 - [x] Geração de Token de Acesso (JWT) com expiração.
 - [x] Proteção de Rotas no Frontend (Redirecionamento para login se não autenticado).
-- [x] Script de "Seed" para criação/reset do usuário Admin.
 
 ### RF 2.0: Entrada e Gestão de Dados
-- [x] **Dashboard**: Listagem das entradas ordenadas por data e hora.
-- [x] **Formulário de Entrada**:
-  - Cadastro de dados Macro (Mensal, Semanal, Diário).
-  - Cadastro de estrutura H4 (6 campos: 00h, 04h, 08h, 12h, 16h, 20h).
-  - Cadastro de estrutura H1 (24 campos: 00h até 23h).
-- [x] **Lógica de Unicidade (Upsert)**:
-  - O sistema impede duplicidade. Se o usuário tentar salvar uma entrada para uma Moeda/Data que já existe, o sistema atualiza o registro existente (sobrescreve) em vez de criar um novo.
-- [x] **Edição**: Capacidade de carregar dados existentes e atualizar valores.
-- [x] **Navegação**: Fluxo fluido entre Dashboard, Nova Entrada e Edição.
+- [x] **Dashboard Interativo**:
+  - Listagem inteligente com colunas Macro (Mensal, Semanal, Diário).
+  - **Filtro por Moeda**: Dropdown estilizado para isolar registros específicos.
+- [x] **Formulário Inteligente de Entrada**:
+  - **Cadastro Técnico Completo**: Interface estruturada para registro de viés Macro (Mensal, Semanal, Diário) e detalhamento intra-diário completo (6 campos para H4 e 24 campos para H1).
+  - **Fluxo de Alta Produtividade**:
+    - **"Salvar e Nova Entrada"**: Funcionalidade para *Batch Input* (preenchimento em lote), que salva o registro, limpa o formulário e mantém o foco para a próxima entrada sem recarregar a página.
+    - **"Salvar e Sair"**: Fluxo padrão para registrar e retornar ao Dashboard.
+  - **Validação de Integridade (Anti-Duplicidade)**: O sistema verifica automaticamente se já existe um registro para a combinação *Moeda + Data*. Caso exista, impede a criação de uma duplicata e alerta o usuário visualmente, evitando sobrescrita acidental de dados.
+  - **Modo de Edição**: Reaproveita a interface para carregar dados existentes, permitindo correções rápidas em registros passados.
 
-### RF 3.0: Funcionalidades Planejadas (Em Breve)
-- [ ] Motor de Cálculo (Cálculo automático de Ciclos e Permissões).
-- [ ] Visualização Colorida (Dashboard com indicadores visuais de Força/Fraqueza).
-- [ ] Cadastro de Feriados.
-- [ ] Filtros avançados no Dashboard.
+### RF 3.0: Motor de Análise Técnica
+- [x] **Matriz de Decisão**: Tela dedicada para leitura de cenários de mercado.
+- [x] **Cálculos Automáticos**:
+  - **Ciclo Concluído**: Analisa histórico consolidado (excluindo atual) baseando-se em níveis de força (0.20) e fraqueza (-0.20).
+  - **Deve Ciclo**: Lógica inversa para prever reversões.
+  - **Flutuante**: Comparação dinâmica entre a última entrada e a penúltima para indicar a força do movimento atual.
+- [x] **Customização de Visualização**: Menu de configuração para Ocultar/Exibir colunas da tabela de análise.
+- [x] **Indicadores Visuais**: Feedback colorido (Verde/Vermelho) automático nas células de status.
+
+### RF 4.0: Funcionalidades Planejadas (Backlog)
+- [ ] **Expansão da Análise Técnica**: Implementação da lógica matemática para os indicadores avançados:
+  - *Construção, Acúmulo, Chão/Teto de Acúmulo, Ponto de Parada, Quebra de Score e etc*
+- [ ] **Cadastro de Feriados**: Módulo para registrar dias sem operação bancária, afetando a análise de volume.
+- [ ] **Cadastro de usuários**: Possibilidade de cadastrar novos usuários via interface.
+- [ ] **Área do usuário**: Armazena informações do usuário, como foto, nome, email, etc.
+- [ ] **Relatórios de Performance**: Gráficos mostrando a assertividade das análises do usuário ao longo do tempo.
+- [ ] **Exportação de Dados**: Funcionalidade para baixar o histórico em CSV/Excel.
 
 ---
 
-## 4. Estrutura do Banco de Dados
+## 4. Estrutura
 
-O projeto utiliza um banco PostgreSQL relacional normalizado:
-
-- **usuarios**: Armazena credenciais e dados de acesso.
-- **moedas**: Tabela de domínio/auxiliar. Contém a lista oficial de moedas operadas.
-- **entradas_mercado**: Tabela "Pai". Armazena Data, Hora, Moeda e valores Macro.
-- **entradas_h4**: Tabela "Filha". Armazena os 6 pontos de H4 vinculados à entrada pai.
-- **entradas_h1**: Tabela "Filha". Armazena os 24 pontos de H1 vinculados à entrada pai.
+coins-project/
+├── backend/            # API (Node.js + Express)
+│   ├── src/
+│   │   ├── config/     # Conexão com Banco (db.js)
+│   │   ├── controllers/# Lógica das rotas (Pontos, Login)
+│   │   └── routes/     # Definição das rotas API
+│   ├── .env            # Variáveis de Ambiente 
+│   └── server.js       # Ponto de entrada
+│
+├── frontend/           # Interface (React + Vite)
+│   ├── src/
+│   │   ├── components/ # Telas (Dashboard, Analise, DataForm)
+│   │   ├── css/        # Estilos Modulares
+│   │   └── App.tsx     # Rotas do Frontend
+│
+├── install.bat         # Script de Instalação (Windows)
+└── start.bat           # Script de Inicialização (Windows)
 
 ---
 

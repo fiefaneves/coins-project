@@ -125,8 +125,10 @@ const listarPontos = async (req, res) => {
             `SELECT 
                 e.id, 
                 e.data_registro, 
-                e.hora_registro, 
                 e.moeda,
+                e.valor_mensal,
+                e.valor_semanal,
+                e.valor_diario,
                 COALESCE(u_edit.nome, u_criador.nome) as responsavel
             FROM entradas_mercado e
             LEFT JOIN usuarios u_criador ON e.criado_por = u_criador.id

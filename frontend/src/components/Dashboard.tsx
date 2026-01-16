@@ -6,9 +6,11 @@ import { Modal } from './Modal';
 interface Ponto {
     id: number;
     data_registro: string; 
-    hora_registro: string;
     moeda: string;
     responsavel: string;
+    valor_mensal: number;
+    valor_semanal: number;
+    valor_diario: number;
 }
 
 interface DashboardProps {
@@ -146,8 +148,10 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                 <thead>
                                     <tr>
                                         <th>Data</th>
-                                        <th>Hora</th>
                                         <th>Moeda</th>
+                                        <th>Mensal</th>
+                                        <th>Semanal</th>
+                                        <th>Diário</th>
                                         <th>Usuário</th>
                                         <th style={{textAlign: 'right'}}>Ações</th>
                                     </tr>
@@ -161,10 +165,12 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                         pontos.map((ponto) => (
                                             <tr key={ponto.id}>
                                                 <td data-label="Data">{formatarData(ponto.data_registro)}</td>
-                                                <td data-label="Hora">{ponto.hora_registro?.substring(0, 5)}</td>
                                                 <td data-label="Moeda">
                                                     <span style={{fontWeight: 'bold'}}>{ponto.moeda}</span>
                                                 </td>
+                                                <td data-label="Mensal">{ponto.valor_mensal}</td>
+                                                <td data-label="Semanal">{ponto.valor_semanal}</td>
+                                                <td data-label="Diário">{ponto.valor_diario}</td>
                                                 <td data-label="Usuário" style={{color: '#666', fontSize: '0.9rem'}}>
                                                     {ponto.responsavel || '-'}
                                                 </td>

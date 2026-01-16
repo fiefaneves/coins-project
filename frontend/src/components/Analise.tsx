@@ -5,7 +5,7 @@ import dashboardStyles from '../css/Dashboard.module.css';
 
 // --- CONFIGURAÇÕES GLOBAIS ---
 
-const COLUNAS = [
+const ALL_COLUMNS = [
     "Ciclo Concluído", 
     "Deve Ciclo", 
     "Construção", 
@@ -30,49 +30,33 @@ const MERCADOS: Record<string, string> = {
     'USD': 'América', 'CAD': 'América'
 };
 
-// Configuração dos Limites de Score por Moeda
-// Se uma moeda tiver limites diferentes, basta alterar aqui.
-const LIMITES_MOEDA: Record<string, { forca: number; fraqueza: number }> = {
-    'AUD': { forca: 0.20, fraqueza: -0.20 },
-    'NZD': { forca: 0.20, fraqueza: -0.20 },
-    'CAD': { forca: 0.20, fraqueza: -0.20 },
-    'EUR': { forca: 0.20, fraqueza: -0.20 },
-    'GBP': { forca: 0.20, fraqueza: -0.20 },
-    'CHF': { forca: 0.20, fraqueza: -0.20 },
-    'USD': { forca: 0.20, fraqueza: -0.20 },
-    'JPY': { forca: 0.20, fraqueza: -0.20 },
-};
-const DEFAULT_LIMIT = { forca: 0.20, fraqueza: -0.20 };
+// --- ALTERAÇÃO: LIMITES FIXOS UNIVERSAIS ---
+const THRESHOLD_FORCA = 0.20;
+const THRESHOLD_FRAQUEZA = -0.20;
 
-// --- HELPERS E CALCULADORAS ---
+// --- HELPERS ---
 
-// Converte valor do banco para número
 const toNum = (val: any) => {
     if (val === null || val === undefined || val === '') return null;
     const num = parseFloat(String(val).replace(',', '.'));
     return isNaN(num) ? null : num;
 };
 
-// Interface para o ponto histórico
 interface PontoHistorico {
     data: string;
     valor: number | null;
 }
 
-// Helper para formatar data
 const fmtData = (d: any) => {
     if (!d) return '';
     if (typeof d === 'string' && d.includes('-')) return d.split('T')[0];
     return String(d);
 };
 
-// Extrai a lista de valores (scores) de um registro baseado no Timeframe
 const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: string): PontoHistorico[] => {
     if (!dadoBanco) return [];
-
     let lista: any[] = [];
 
-    // Usamos o histórico diretamente, pois ele já contém o valor do dia/mês atual (devido ao filtro <= data no backend).
     if (time === 'MN') lista = dadoBanco.historico_mn || [];
     if (time === 'W1') lista = dadoBanco.historico_w1 || [];
     if (time === 'D1') lista = dadoBanco.historico_d1 || [];
@@ -84,12 +68,10 @@ const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: st
         }));
     }
 
-    // Para H4 e H1, o backend não manda histórico de dias anteriores, 
-    // então montamos a lista apenas com as velas do dia atual.
     if (time === 'H4') {
         const h4Times = ['00', '04', '08', '12', '16', '20'];
         return h4Times.map(h => ({
-            data: `${dataReferencia} ${h}:00`, // Ex: 2026-06-01 04:00
+            data: `${dataReferencia} ${h}:00`,
             valor: toNum(dadoBanco[`h4_${h}`])
         }));    
     }
@@ -101,62 +83,45 @@ const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: st
             valor: toNum(dadoBanco[`h1_${h}`])
         }));
     }
-
     return [];
 };
 
-// Lógica central do Ciclo Concluído
-// Percorre a lista de valores e determina o estado final baseando-se na troca de limites
-const calcularEstadoCiclo = (historico: PontoHistorico[], moeda: string) => {
-    const limites = LIMITES_MOEDA[moeda] || DEFAULT_LIMIT;
-
+// --- LÓGICA DE CICLO SIMPLIFICADA ---
+const calcularEstadoCiclo = (historico: PontoHistorico[]) => {
+    // Agora usa as constantes globais, ignorando qual é a moeda
     let ultimoEstado: 'Força' | 'Fraqueza' | null = null;
     let dataInicio: string | null = null;
 
     for (const ponto of historico) {
         if (ponto.valor === null) continue;
-
         let novoEstado: 'Força' | 'Fraqueza' | null = ultimoEstado;
 
-        if (ponto.valor >= limites.forca) {
-            novoEstado = 'Força';
-        } else if (ponto.valor <= limites.fraqueza) {
-            novoEstado = 'Fraqueza';
-        }
+        if (ponto.valor >= THRESHOLD_FORCA) novoEstado = 'Força';
+        else if (ponto.valor <= THRESHOLD_FRAQUEZA) novoEstado = 'Fraqueza';
 
-        // REGRA DE PERSISTÊNCIA:
-        // Só atualizamos a Data se houve uma MUDANÇA REAL de estado (Ex: Null -> Força, ou Fraqueza -> Força)
-        // Se estava 'Força', caiu pra 0.10 (Neutro) e subiu pra 0.25 (Força) de novo,
-        // o 'novoEstado' será 'Força', 'ultimoEstado' era 'Força'. 
-        // Entra no if? NÃO. Mantém a data antiga.
         if (novoEstado !== null && novoEstado !== ultimoEstado) {
             ultimoEstado = novoEstado;
             dataInicio = ponto.data;
         }
     }
-
     return { status: ultimoEstado, dataInicio };
 };
 
-// --- MAPA DE CALCULADORAS POR COLUNA ---
-// Aqui é onde você organiza a lógica de cada coluna nova.
+// --- CALCULADORAS ---
+// (Removemos o parametro 'moeda' que não é mais usado no calculo de ciclo)
 type CalculatorFunction = (valores: PontoHistorico[], moeda: string) => any;
 
 const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
-    "Ciclo Concluído": (valores, moeda) => {
-        return calcularEstadoCiclo(valores, moeda);
-    },
+    "Ciclo Concluído": (valores) => calcularEstadoCiclo(valores),
     
-    "Deve Ciclo": (valores, moeda) => {
-        const { status } = calcularEstadoCiclo(valores, moeda);
-        // Oposto do Ciclo Concluído
+    "Deve Ciclo": (valores) => {
+        const { status } = calcularEstadoCiclo(valores);
         if (status === 'Força') return 'Fraqueza';
         if (status === 'Fraqueza') return 'Força';
         return null;
     },
-
-    // Futuras colunas virão aqui:
-    // "Contrução": (valores, moeda) => { ... lógica da construção ... },
+    
+    // Futuras lógicas podem usar 'moeda' se necessário, por isso mantive na assinatura do tipo
 };
 
 interface AnaliseProps {
@@ -170,10 +135,11 @@ export function Analise({ onBack }: AnaliseProps) {
     const [selectedDate, setSelectedDate] = useState(formattedToday);
     const [dadosBrutos, setDadosBrutos] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    
+    // --- ESTADO DE CONFIGURAÇÃO DAS COLUNAS ---
     const [showConfig, setShowConfig] = useState(false);
     const configRef = useRef<HTMLDivElement>(null);
 
-    // Configuração inicial
     const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>({
         "Ciclo Concluído": false,
         "Deve Ciclo": true,
@@ -191,7 +157,6 @@ export function Analise({ onBack }: AnaliseProps) {
         "Não Operar": true
     });
 
-    // Fecha o menu se clicar fora
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (configRef.current && !configRef.current.contains(event.target as Node)) {
@@ -229,10 +194,9 @@ export function Analise({ onBack }: AnaliseProps) {
         }));
     };
 
-    // Filtra quais colunas serão renderizadas
-    const activeColumns = COLUNAS.filter(col => visibleCols[col]);
-
     const moedasList = ['AUD', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'NZD', 'USD'];
+    
+    const activeColumns = ALL_COLUMNS.filter(col => visibleCols[col]);
 
     return (
         <div className={dashboardStyles.dashboardContainer}>
@@ -261,7 +225,7 @@ export function Analise({ onBack }: AnaliseProps) {
 
                             {showConfig && (
                                 <div className={styles.dropdownMenu}>
-                                    {COLUNAS.map(col => (
+                                    {ALL_COLUMNS.map(col => (
                                         <label key={col} className={styles.checkboxItem}>
                                             <input 
                                                 type="checkbox" 
@@ -299,7 +263,7 @@ export function Analise({ onBack }: AnaliseProps) {
                                     <th style={{width: '80px', left: '150px', zIndex: 20}}>Mercado</th>
                                     <th style={{width: '50px', left: '230px', zIndex: 20}}>Time</th>
                                     
-                                    {/* Renderiza apenas colunas ativas */}
+                                    {/* Colunas Dinâmicas */}
                                     {activeColumns.map(col => (
                                         <th key={col}>{col}</th>
                                     ))}
@@ -317,7 +281,6 @@ export function Analise({ onBack }: AnaliseProps) {
                                             
                                             return (
                                                 <tr key={`${moeda}-${time}`} className={isLastTime ? styles.rowDivider : ''}>
-                                                    {/* Fixando as primeiras colunas no scroll horizontal */}
                                                     <td className={styles.colFixed} style={{position: 'sticky', left: 0, zIndex: 15}}>
                                                         {index === 0 ? selectedDate.split('-').reverse().join('/') : ''}
                                                     </td>
@@ -335,7 +298,6 @@ export function Analise({ onBack }: AnaliseProps) {
                                                         {time}
                                                     </td>
 
-                                                    {/* Células Dinâmicas (Apenas Ativas) */}
                                                     {activeColumns.map(col => {
                                                         const calculator = COLUNA_CALCULATORS[col];
                                                         const valoresParaCalculo = valores.slice(0, -1);

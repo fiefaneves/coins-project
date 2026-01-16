@@ -22,12 +22,15 @@ interface DataFormProps {
 export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const navigate = useNavigate();
 
-    const hoje = new Date();
-    const dataPadrao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    // Lógica de Data Padrão (Hoje)
+    const getHojeFormatado = () => {
+        const hoje = new Date();
+        return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    };
 
-    // Estado inicial com campos dinâmicos para H1
-    const [formData, setFormData] = useState<FormData>({
-        data: dataPadrao,
+    // Função auxiliar para gerar o estado inicial (limpo)
+    const getInitialState = (): FormData => ({
+        data: getHojeFormatado(),
         moeda: 'AUD',
         mensal: '',
         semanal: '',
@@ -37,6 +40,11 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             [`h1_${i.toString().padStart(2, '0')}`, '']
         ))
     });
+
+    const [formData, setFormData] = useState<FormData>(getInitialState());
+
+    // Controle de qual ação tomar após salvar ('exit' = Dashboard, 'new' = Limpar e Continuar)
+    const [actionAfterSave, setActionAfterSave] = useState<'exit' | 'new'>('exit');
 
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -84,9 +92,11 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
+        // Se estiver editando, pede confirmação
         if (editingId) {
             setShowSaveModal(true);
         } else {
+            // Se for novo, salva direto
             processSave();
         }
     };
@@ -110,27 +120,41 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
             };
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+            // --- Lógica de Edição ---
             if (editingId) {
                 await axios.put(`${apiUrl}/api/pontos/${editingId}`, dadosParaEnviar, { headers });
-                if (onSuccess) {
-                    onSuccess(); 
+                
+                if (actionAfterSave === 'exit') {
+                    if (onSuccess) onSuccess(); 
+                    else navigate('/dashboard');
                 } else {
-                    navigate('/dashboard');
+                    // Se clicou em "Salvar e Novo" estando na edição, vai para a tela de Novo
+                    navigate('/novo');
                 }
+            
+            // --- Lógica de Nova Entrada ---
             } else {
                 await axios.post(`${apiUrl}/api/pontos`, dadosParaEnviar, { headers });
-                navigate('/dashboard');
+                
+                if (actionAfterSave === 'exit') {
+                    navigate('/dashboard');
+                } else {
+                    // Salvar e Novo: Reseta o formulário e exibe sucesso
+                    setFormData(getInitialState());
+                    setMessage('✅ Registro salvo com sucesso! Pronto para o próximo.');
+                    setIsLoading(false);
+                    // Rola a página para o topo suavemente
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }
 
         } catch (error: any) {
             console.error('Erro:', error);
             if (error.response && error.response.data && error.response.data.message) {
-                // Se o backend mandou uma mensagem específica (ex: Já existe registro...)
                 setMessage(error.response.data.message);
             } else {
-                // Erro genérico de conexão
                 setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
-            }            
+            }
             setIsError(true);
             setIsLoading(false);
         }
@@ -235,12 +259,32 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                         </div>
                     )}
                     
-                    {/* Botão de Envio */}
-                    <div className={styles.buttonContainer}>
-                        <button type="submit" className={styles.button} disabled={isLoading}>
-                            {isLoading ? 'Processando...' : (editingId ? 'Salvar Alterações' : 'Registrar Entrada')}
+                    {/* Botões de Ação */}
+                    <div className={styles.buttonContainer} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        
+                        {/* Botão 1: Salvar e Continuar (Prioridade secundária visualmente, mas útil) */}
+                        <button 
+                            type="submit" 
+                            className={styles.button} 
+                            style={{ flex: 1, backgroundColor: '#2b6cb0', minWidth: '180px' }}
+                            onClick={() => setActionAfterSave('new')}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? '...' : 'Salvar e Nova Entrada'}
+                        </button>
+
+                        {/* Botão 2: Salvar e Sair (Ação padrão) */}
+                        <button 
+                            type="submit" 
+                            className={styles.button}
+                            style={{ flex: 1, minWidth: '160px' }}
+                            onClick={() => setActionAfterSave('exit')}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? '...' : 'Salvar e Sair'}
                         </button>
                     </div>
+
                 </form>
             </div>
 

@@ -122,9 +122,15 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 navigate('/dashboard');
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro:', error);
-            setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
+            if (error.response && error.response.data && error.response.data.message) {
+                // Se o backend mandou uma mensagem específica (ex: Já existe registro...)
+                setMessage(error.response.data.message);
+            } else {
+                // Erro genérico de conexão
+                setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
+            }            
             setIsError(true);
             setIsLoading(false);
         }

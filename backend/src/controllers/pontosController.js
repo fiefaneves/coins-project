@@ -30,33 +30,10 @@ const salvarPonto = async (req, res) => {
         let acaoRealizada = '';
 
         if (checkExistente.rows.length > 0) {
-            // --- ATUALIZAR (Sobrescreve existente) ---
-            entradaId = checkExistente.rows[0].id;
-            acaoRealizada = 'atualizado';
-
-            // Removemos o campo tipo_entrada da Query e reajustamos os índices ($)
-            await client.query(`
-                UPDATE entradas_mercado SET 
-                    hora_registro = $1,
-                    valor_mensal = $2,
-                    valor_semanal = $3,
-                    valor_diario = $4,
-                    editado_por = $5,
-                    data_alteracao = NOW()
-                WHERE id = $6
-            `, [
-                horaSistema,            // $1
-                toNum(mensal),          // $2
-                toNum(semanal),         // $3
-                toNum(diario),          // $4
-                userId,                 // $5
-                entradaId               // $6
-            ]);
-
-            // Limpa filhos antigos
-            await client.query('DELETE FROM entradas_h4 WHERE entrada_id = $1', [entradaId]);
-            await client.query('DELETE FROM entradas_h1 WHERE entrada_id = $1', [entradaId]);
-
+            await client.query('ROLLBACK'); // Cancela a transação aberta
+            return res.status(409).json({ 
+                message: `Já existe um registro para ${moeda} no dia ${data}. Edite o existente.` 
+            });
         } else {
             // --- CRIAR NOVO ---
             // Removemos o campo tipo_entrada da Query e reajustamos os índices

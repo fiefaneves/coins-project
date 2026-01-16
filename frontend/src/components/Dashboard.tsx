@@ -22,39 +22,44 @@ interface DashboardProps {
 export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
     const [pontos, setPontos] = useState<Ponto[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filtroMoeda, setFiltroMoeda] = useState<string>('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [idToDelete, setIdToDelete] = useState<number | null>(null);
 
-    useEffect(() => {
-        const fetchPontos = async () => {
-            try {
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-                const response = await fetch(`${apiUrl}/api/pontos`);
-                const data = await response.json();
-                setPontos(data);
-            } catch (error) {
-                console.error("Erro ao buscar dados:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Função para buscar dados
+    const fetchPontos = async () => {
+        setLoading(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${apiUrl}/api/pontos`);
+            const data = await response.json();
+            setPontos(data);
+        } catch (error) {
+            console.error("Erro ao buscar dados:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchPontos();
     }, []);
 
     const formatarData = (dataIso: string) => {
         if (!dataIso) return '-';
-        
-        // 1. Garante que pegamos só a parte da data (YYYY-MM-DD)
-        // Isso resolve se vier "2026-01-07" ou "2026-01-07T00:00:00.000Z"
         const dataPura = dataIso.toString().split('T')[0]; 
-        
-        // 2. Divide os pedaços (Ano, Mês, Dia)
         const [ano, mes, dia] = dataPura.split('-');
-        
-        // 3. Monta no formato brasileiro manualmente
         return `${dia}/${mes}/${ano}`;
     };
+
+    // 1. Lista única de moedas disponíveis nos dados atuais
+    const moedasDisponiveis = Array.from(new Set(pontos.map(p => p.moeda)));
+
+    // 2. Filtra os pontos com base na seleção
+    const pontosFiltrados = pontos.filter(ponto => {
+        if (filtroMoeda === '') return true;
+        return ponto.moeda === filtroMoeda;
+    });
 
     const handleClickDelete = (id: number) => {
         setIdToDelete(id);
@@ -141,7 +146,25 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
 
                     {/* Seção da Tabela */}
                     <div className={styles.tableSection}>
-                        <h3 className={styles.sectionTitle}>Registros Recentes</h3>
+                        <div className={styles.filterSection}>
+                            <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                Registros Recentes
+                            </h3>
+                            {/* --- CONTROLE DO FILTRO --- */}
+                            <div className={styles.filterWrapper}>
+                                <label className={styles.filterLabel}>Filtrar moeda:</label>
+                                <select
+                                    value={filtroMoeda} 
+                                    onChange={(e) => setFiltroMoeda(e.target.value)}
+                                    className={styles.filterSelect}
+                                >
+                                    <option value="">Todas</option>
+                                    {moedasDisponiveis.map(moeda => (
+                                        <option key={moeda} value={moeda}>{moeda}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
                         
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
@@ -159,10 +182,14 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                 <tbody>
                                     {loading ? (
                                         <tr><td colSpan={5} style={{textAlign:'center', padding:'2rem'}}>Carregando...</td></tr>
-                                    ) : pontos.length === 0 ? (
-                                        <tr><td colSpan={5} style={{textAlign:'center', padding:'2rem'}}>Nenhum registro encontrado.</td></tr>
+                                    ) : pontosFiltrados.length === 0 ? (
+                                        <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem'}}>
+                                            {pontos.length > 0 
+                                                ? `Nenhum registro para ${filtroMoeda}.` 
+                                                : "Nenhum registro encontrado."}
+                                        </td></tr>
                                     ) : (
-                                        pontos.map((ponto) => (
+                                        pontosFiltrados.map((ponto) => (
                                             <tr key={ponto.id}>
                                                 <td data-label="Data">{formatarData(ponto.data_registro)}</td>
                                                 <td data-label="Moeda">

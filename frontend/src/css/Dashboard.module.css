@@ -207,6 +207,65 @@
 }
 .actionLink:hover { color: #3182ce; text-decoration: underline; }
 
+/* --- ÁREA DE FILTROS --- */
+.filterSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filterWrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #f7fafc; /* Cinza bem claro */
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #edf2f7;
+}
+
+.filterLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filterSelect {
+    appearance: none; /* Remove a seta padrão feia do navegador */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    
+    background-color: #ffffff;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    padding: 8px 35px 8px 12px; /* Espaço extra na direita para a seta */
+    font-size: 0.9rem;
+    color: #2d3748;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    
+    /* Seta Customizada (SVG encoded) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+}
+
+.filterSelect:hover {
+    border-color: #a0aec0;
+}
+
+.filterSelect:focus {
+    border-color: #3182ce; /* Azul no foco */
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15); /* Brilho azul suave */
+}
+
 /* --- MOBILE --- */
 @media (max-width: 768px) {
     .dashboardContainer {

@@ -139,11 +139,16 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 if (actionAfterSave === 'exit') {
                     navigate('/dashboard');
                 } else {
+
+                    setFormData(currentState => ({
+                        ...getInitialState(),      // Pega o template limpo
+                        data: currentState.data,   // Sobrescreve com a Data que estava no form
+                        moeda: currentState.moeda  // Sobrescreve com a Moeda que estava no form
+                    }));
+
                     // Salvar e Novo: Reseta o formulário e exibe sucesso
-                    setFormData(getInitialState());
                     setMessage('✅ Registro salvo com sucesso! Pronto para o próximo.');
                     setIsLoading(false);
-                    // Rola a página para o topo suavemente
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             }

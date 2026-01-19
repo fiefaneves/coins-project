@@ -341,4 +341,4 @@ const getAnalise = async (req, res) => {
     }
 };
 
-module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData, getAnalise };
+module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, getAnalise };

@@ -8,6 +8,6 @@ router.post('/pontos', verificarToken, pontosController.salvarPonto);
 router.get('/pontos/:id', verificarToken, pontosController.obterPonto);
 router.put('/pontos/:id', verificarToken, pontosController.atualizarPonto); 
 router.delete('/pontos/:id', verificarToken, pontosController.excluirPonto); 
-router.get('/analise', verificarToken, pontosController.buscarAnalisePorData);
+router.get('/analise', verificarToken, pontosController.getAnalise);
 
 module.exports = router;

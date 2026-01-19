@@ -23,6 +23,7 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
     const [pontos, setPontos] = useState<Ponto[]>([]);
     const [loading, setLoading] = useState(true);
     const [filtroMoeda, setFiltroMoeda] = useState<string>('');
+    const [filtroData, setFiltroData] = useState<string>('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [idToDelete, setIdToDelete] = useState<number | null>(null);
 
@@ -55,11 +56,26 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
     // 1. Lista única de moedas disponíveis nos dados atuais
     const moedasDisponiveis = Array.from(new Set(pontos.map(p => p.moeda)));
 
-    // 2. Filtra os pontos com base na seleção
+    // 2. Filtra os pontos com base na seleção (MOEDA + DATA)
     const pontosFiltrados = pontos.filter(ponto => {
-        if (filtroMoeda === '') return true;
-        return ponto.moeda === filtroMoeda;
+        // Filtro de Moeda
+        const matchMoeda = filtroMoeda === '' || ponto.moeda === filtroMoeda;
+        
+        // Filtro de Data
+        let matchData = true;
+        if (filtroData !== '') {
+            // O input type="date" retorna YYYY-MM-DD. O backend manda ISO 2026-01-19T...
+            const dataPonto = ponto.data_registro.toString().split('T')[0];
+            matchData = dataPonto === filtroData;
+        }
+
+        return matchMoeda && matchData;
     });
+
+    const limparFiltros = () => {
+        setFiltroMoeda('');
+        setFiltroData('');
+    };
 
     const handleClickDelete = (id: number) => {
         setIdToDelete(id);
@@ -151,18 +167,52 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
                                 Registros Recentes
                             </h3>
                             {/* --- CONTROLE DO FILTRO --- */}
-                            <div className={styles.filterWrapper}>
-                                <label className={styles.filterLabel}>Filtrar moeda:</label>
-                                <select
-                                    value={filtroMoeda} 
-                                    onChange={(e) => setFiltroMoeda(e.target.value)}
-                                    className={styles.filterSelect}
-                                >
-                                    <option value="">Todas</option>
-                                    {moedasDisponiveis.map(moeda => (
-                                        <option key={moeda} value={moeda}>{moeda}</option>
-                                    ))}
-                                </select>
+                            <div className={styles.filterWrapper} style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                
+                                {/* Filtro Data */}
+                                <div>
+                                    <label className={styles.filterLabel} style={{display:'block', marginBottom:'4px'}}>Data:</label>
+                                    <input 
+                                        type="date" 
+                                        className={styles.filterSelect} // Reutilizando classe para manter estilo
+                                        value={filtroData}
+                                        onChange={(e) => setFiltroData(e.target.value)}
+                                        style={{ padding: '8px', minWidth: '130px' }}
+                                    />
+                                </div>
+
+                                {/* Filtro Moeda */}
+                                <div>
+                                    <label className={styles.filterLabel} style={{display:'block', marginBottom:'4px'}}>Moeda:</label>
+                                    <select
+                                        value={filtroMoeda} 
+                                        onChange={(e) => setFiltroMoeda(e.target.value)}
+                                        className={styles.filterSelect}
+                                    >
+                                        <option value="">Todas</option>
+                                        {moedasDisponiveis.map(moeda => (
+                                            <option key={moeda} value={moeda}>{moeda}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Botão Limpar */}
+                                {(filtroMoeda || filtroData) && (
+                                    <button 
+                                        onClick={limparFiltros}
+                                        style={{
+                                            padding: '8px 12px',
+                                            backgroundColor: '#edf2f7',
+                                            border: '1px solid #cbd5e0',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            height: '38px' // Alinhar visualmente com inputs
+                                        }}
+                                    >
+                                        Limpar
+                                    </button>
+                                )}
                             </div>
                         </div>
                         

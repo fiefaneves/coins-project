@@ -260,67 +260,85 @@ const excluirPonto = async (req, res) => {
     }
 };
 
-// 6. BUSCAR ANALISE (Mantido)
-const buscarAnalisePorData = async (req, res) => {
-    const { data } = req.query; 
-
-    if (!data) return res.status(400).json({ message: 'Data é obrigatória' });
-
+// 6. BUSCAR ANALISE POR DATA
+const getAnalise = async (req, res) => {
     try {
-        // 1. Busca os dados do dia selecionado
-        const result = await pool.query(
-            `SELECT * FROM entradas_mercado 
-             WHERE data_registro = $1 AND deletado = FALSE
-             ORDER BY moeda ASC`,
+        const { data } = req.query; // Data selecionada no frontend (ex: 2026-01-16)
+        
+        if (!data) {
+            return res.status(400).json({ message: 'Data é obrigatória' });
+        }
+
+        // 1. Busca todas as moedas distintas que têm registro nessa data
+        // (Isso define quais linhas aparecem na tabela)
+        const moedasAtivas = await pool.query(
+            `SELECT DISTINCT moeda FROM entradas_mercado 
+             WHERE data_registro = $1 AND deletado = FALSE`,
             [data]
         );
 
-        // 2. Para cada moeda, busca o histórico anterior (para MN, W1, D1) e o Intradiário (H4, H1)
-        const analisesCompletas = await Promise.all(result.rows.map(async (entrada) => {
+        const resultadoFinal = [];
+
+        // 2. Para cada moeda, buscamos o histórico COMPLETO até a data selecionada
+        for (const m of moedasAtivas.rows) {
+            const moeda = m.moeda;
+
+            // Busca tudo daquela moeda até a data atual, ordenado do mais recente para o antigo
+            const historico = await pool.query(
+                `SELECT * FROM entradas_mercado 
+                 WHERE moeda = $1 
+                 AND data_registro <= $2 
+                 AND deletado = FALSE 
+                 ORDER BY data_registro DESC`, 
+                [moeda, data]
+            );
+
+            // Busca detalhes H4 e H1 apenas do dia selecionado (para a coluna H4/H1)
+            // Pegamos o ID da entrada do dia selecionado (que é o primeiro do histórico pois ordenamos DESC)
+            const entradaAtual = historico.rows[0]; 
             
-            // Busca Histórico: Pegamos os últimos 30 registros ATÉ a data atual
-            const resHistorico = await pool.query(`
-                SELECT data_registro, valor_mensal, valor_semanal, valor_diario 
-                FROM entradas_mercado 
-                WHERE moeda = $1 AND data_registro <= $2 AND deletado = FALSE
-                ORDER BY data_registro DESC
-                LIMIT 30
-            `, [entrada.moeda, data]);
+            let dadosH4 = {};
+            let dadosH1 = {};
 
-            // 2. Invertemos (.reverse) no JavaScript para ficar cronológico (Antigo -> Novo)
-            // Isso é essencial para o cálculo do ciclo funcionar na ordem certa.
-            const historicoOrdenado = resHistorico.rows.reverse();
+            if (entradaAtual) {
+                const h4Query = await pool.query(`SELECT hora, valor FROM entradas_h4 WHERE entrada_id = $1`, [entradaAtual.id]);
+                h4Query.rows.forEach(r => dadosH4[`h4_${r.hora}`] = r.valor);
 
-            const resH4 = await pool.query('SELECT hora, valor FROM entradas_h4 WHERE entrada_id = $1 ORDER BY hora ASC', [entrada.id]);
-            const resH1 = await pool.query('SELECT hora, valor FROM entradas_h1 WHERE entrada_id = $1 ORDER BY hora ASC', [entrada.id]);
+                const h1Query = await pool.query(`SELECT hora, valor FROM entradas_h1 WHERE entrada_id = $1`, [entradaAtual.id]);
+                h1Query.rows.forEach(r => dadosH1[`h1_${r.hora}`] = r.valor);
+            }
 
-            const entradaCompleta = { ...entrada };
+            // --- MONTAGEM INTELIGENTE DOS HISTÓRICOS ---
+            // O frontend espera arrays cronológicos (Antigo -> Novo)
+            // O banco devolveu (Novo -> Antigo), então vamos inverter (.reverse)
             
-            entradaCompleta.historico_mn = historicoOrdenado.map(r =>  ({
-                data: r.data_registro,
-                valor: r.valor_mensal
-            }));
-            entradaCompleta.historico_w1 = historicoOrdenado.map(r =>  ({
-                data: r.data_registro,
-                valor: r.valor_semanal
-            }));
-            entradaCompleta.historico_d1 = historicoOrdenado.map(r =>  ({
-                data: r.data_registro,
-                valor: r.valor_diario
-            }));
+            // Função auxiliar para filtrar valores nulos e duplicados consecutivos (opcional, mas bom para performance visual)
+            const mapHistorico = (campo) => {
+                return historico.rows
+                    .map(row => ({ data: row.data_registro, valor: row[campo] }))
+                    .filter(item => item.valor !== null) // Remove dias onde não houve registro desse timeframe
+                    .reverse(); // Coloca em ordem cronológica (Jan -> Fev)
+            };
 
-            resH4.rows.forEach(r => entradaCompleta[`h4_${r.hora}`] = r.valor);
-            resH1.rows.forEach(r => entradaCompleta[`h1_${r.hora}`] = r.valor);
+            resultadoFinal.push({
+                moeda: moeda,
+                // Dados do dia atual
+                ...dadosH4,
+                ...dadosH1,
+                
+                // Históricos completos para cálculo de Ciclo e Flutuante
+                historico_mn: mapHistorico('valor_mensal'),
+                historico_w1: mapHistorico('valor_semanal'),
+                historico_d1: mapHistorico('valor_diario')
+            });
+        }
 
-            return entradaCompleta;
-        }));
-
-        res.json(analisesCompletas);
+        res.json(resultadoFinal);
 
     } catch (error) {
-        console.error("Erro no buscarAnalisePorData:", error);
-        res.status(500).json({ message: 'Erro ao buscar análise' });
+        console.error('Erro na análise:', error);
+        res.status(500).json({ message: 'Erro ao processar análise' });
     }
 };
 
-module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData };
+module.exports = { salvarPonto, listarPontos, obterPonto, atualizarPonto, excluirPonto, buscarAnalisePorData, getAnalise };

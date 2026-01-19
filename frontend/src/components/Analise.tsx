@@ -188,24 +188,45 @@ export function Analise({ onBack }: AnaliseProps) {
     }, []);
 
     useEffect(() => {
-        carregarDados();
-    }, [selectedDate]);
+        // 1. Criar um controlador de cancelamento
+        const controller = new AbortController();
 
-    const carregarDados = async () => {
-        setLoading(true);
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            const token = localStorage.getItem('user_token');
-            const res = await axios.get(`${apiUrl}/api/analise?data=${selectedDate}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            setDadosBrutos(res.data);
-        } catch (error) {
-            console.error("Erro ao carregar análise", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        const carregarDados = async () => {
+            setLoading(true);
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                const token = localStorage.getItem('user_token');
+                
+                // 2. Passar o 'signal' para o Axios
+                const res = await axios.get(`${apiUrl}/api/analise?data=${selectedDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: controller.signal 
+                });
+                
+                setDadosBrutos(res.data);
+            } catch (error: any) {
+                // 3. Ignorar erros causados pelo cancelamento proposital
+                if (axios.isCancel(error)) {
+                    console.log('Pedido anterior cancelado para priorizar o novo.');
+                } else {
+                    console.error("Erro ao carregar análise", error);
+                }
+            } finally {
+                // Só remove o loading se o pedido não foi cancelado
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        carregarDados();
+
+        // 4. Função de limpeza: roda automaticamente se o selectedDate mudar antes do pedido terminar
+        return () => {
+            controller.abort();
+        };
+
+    }, [selectedDate]);
 
     const toggleColumn = (col: string) => {
         setVisibleCols(prev => ({

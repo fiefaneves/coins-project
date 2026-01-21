@@ -170,7 +170,7 @@ export function Analise({ onBack }: AnaliseProps) {
         "Mudou": false,
         "Flutuante": true,
         "Flutuante no Sentido": true,
-        "Flutuante antes 21h": true,
+        "Flutuante antes 21h": false,
         "Ponto de Parada": true,
         "Quebra de Score": true,
         "Permissão": true,

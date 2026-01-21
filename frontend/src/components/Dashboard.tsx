@@ -50,7 +50,21 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
         if (!dataIso) return '-';
         const dataPura = dataIso.toString().split('T')[0]; 
         const [ano, mes, dia] = dataPura.split('-');
-        return `${dia}/${mes}/${ano}`;
+        
+        // Cria data garantindo fuso local correto
+        const dateObj = new Date(Number(ano), Number(mes) - 1, Number(dia));
+        
+        // 1. Pega o nome completo (ex: "terça-feira")
+        const diaSemanaFull = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+        
+        // 2. Remove o "-feira" se existir (pega só a primeira parte)
+        const primeiroNome = diaSemanaFull.split('-')[0]; 
+        
+        // 3. Capitaliza (terça -> Terça)
+        const diaSemanaFmt = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1);
+
+        // Retorna formato: 20/01/2026 - Terça
+        return `${dia}/${mes}/${ano} - ${diaSemanaFmt}`;
     };
 
     // 1. Lista única de moedas disponíveis nos dados atuais

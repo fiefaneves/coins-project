@@ -58,3 +58,7 @@ Thumbs.db
 # Yarn PnP
 .pnp.*
 .pnp.js
+
+# Tests
+tests/
+*.csv

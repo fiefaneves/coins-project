@@ -32,54 +32,24 @@ const MERCADOS: Record<string, string> = {
 const THRESHOLD_FORCA = 0.20;
 const THRESHOLD_FRAQUEZA = -0.20;
 
-// --- HELPERS ---
-const toNum = (val: any) => {
-    if (val === null || val === undefined || val === '') return null;
-    const num = parseFloat(String(val).replace(',', '.'));
-    return isNaN(num) ? null : num;
-};
-
 interface PontoHistorico {
     data: string;
     valor: number | null;
 }
 
-const fmtData = (d: any) => {
-    if (!d) return '';
-    if (typeof d === 'string' && d.includes('-')) return d.split('T')[0];
-    return String(d);
-};
-
-const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: string): PontoHistorico[] => {
+// --- FUNÇÕES AUXILIARES ---
+const getValoresPorTimeframe = (dadoBanco: any, time: string): PontoHistorico[] => {
     if (!dadoBanco) return [];
-    let lista: any[] = [];
-
-    if (time === 'MN') lista = dadoBanco.historico_mn || [];
-    if (time === 'W1') lista = dadoBanco.historico_w1 || [];
-    if (time === 'D1') lista = dadoBanco.historico_d1 || [];
-
-    if (['MN', 'W1', 'D1'].includes(time)) {
-        return lista.map((item: any) => ({
-            data: fmtData(item.data),
-            valor: toNum(item.valor)
-        }));
-    }
-
-    if (time === 'H4') {
-        const h4Times = ['00', '04', '08', '12', '16', '20'];
-        return h4Times.map(h => ({
-            data: `${dataReferencia} ${h}:00`,
-            valor: toNum(dadoBanco[`h4_${h}`])
-        }));    
-    }
-
-    if (time === 'H1') {
-        const h1Times = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-        return h1Times.map(h => ({
-            data: `${dataReferencia} ${h}:00`,
-            valor: toNum(dadoBanco[`h1_${h}`])
-        }));
-    }
+    
+    // Agora todos vêm prontos do backend!
+    if (time === 'MN') return dadoBanco.historico_mn || [];
+    if (time === 'W1') return dadoBanco.historico_w1 || [];
+    if (time === 'D1') return dadoBanco.historico_d1 || [];
+    
+    // H4 e H1 agora são contínuos (pegam dias anteriores)
+    if (time === 'H4') return dadoBanco.historico_h4 || [];
+    if (time === 'H1') return dadoBanco.historico_h1 || [];
+    
     return [];
 };
 
@@ -383,7 +353,7 @@ export function Analise({ onBack }: AnaliseProps) {
                                         TIMES.map((time, index) => {
                                             const isLastTime = index === TIMES.length - 1;
                                             const dadoBanco = dadosBrutos.find(d => d.moeda === moeda);
-                                            const valores = getValoresPorTimeframe(dadoBanco, time, selectedDate);                      
+                                            const valores = getValoresPorTimeframe(dadoBanco, time);                      
                                             
                                             return (
                                                 <tr key={`${moeda}-${time}`} className={isLastTime ? styles.rowDivider : ''}>

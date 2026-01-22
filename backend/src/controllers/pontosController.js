@@ -265,9 +265,7 @@ const getAnalise = async (req, res) => {
     try {
         const { data } = req.query; // Data selecionada no frontend (ex: 2026-01-16)
         
-        if (!data) {
-            return res.status(400).json({ message: 'Data é obrigatória' });
-        }
+        if (!data) return res.status(400).json({ message: 'Data é obrigatória' });
 
         // 1. Busca todas as moedas distintas que têm registro nessa data
         // (Isso define quais linhas aparecem na tabela)
@@ -283,53 +281,86 @@ const getAnalise = async (req, res) => {
         for (const m of moedasAtivas.rows) {
             const moeda = m.moeda;
 
-            // Busca tudo daquela moeda até a data atual, ordenado do mais recente para o antigo
+            // 2.1. Busca histórico MACRO (MN, W1, D1) - Limite 30 para não pesar
+            // TO-DO: Estudar se limite adicionado é impedimento para as analises
             const historico = await pool.query(
                 `SELECT * FROM entradas_mercado 
                  WHERE moeda = $1 
                  AND data_registro <= $2 
                  AND deletado = FALSE 
-                 ORDER BY data_registro DESC`, 
+                 ORDER BY data_registro DESC
+                 LIMIT 120`,
                 [moeda, data]
             );
 
-            // Busca detalhes H4 e H1 apenas do dia selecionado (para a coluna H4/H1)
-            // Pegamos o ID da entrada do dia selecionado (que é o primeiro do histórico pois ordenamos DESC)
-            const entradaAtual = historico.rows[0]; 
+            // Coletamos os IDs dos últimos 30 dias para buscar o H4/H1 contínuo
+            const idsHistorico = historico.rows.map(r => r.id);
+
+            // 2.2. Busca histórico INTRADAY (H4) contínuo
+            // O uso de ANY($1) é muito eficiente no Postgres
+            const historicoH4 = await pool.query(
+                `SELECT h.valor, h.hora, e.data_registro 
+                 FROM entradas_h4 h
+                 JOIN entradas_mercado e ON h.entrada_id = e.id
+                 WHERE h.entrada_id = ANY($1)
+                 ORDER BY e.data_registro ASC, h.hora ASC`, // Ordem cronológica
+                [idsHistorico]
+            );
+
+            // 2.3. Busca histórico INTRADAY (H1) contínuo
+            const historicoH1 = await pool.query(
+                `SELECT h.valor, h.hora, e.data_registro 
+                 FROM entradas_h1 h
+                 JOIN entradas_mercado e ON h.entrada_id = e.id
+                 WHERE h.entrada_id = ANY($1)
+                 ORDER BY e.data_registro ASC, h.hora ASC`,
+                [idsHistorico]
+            );
             
-            let dadosH4 = {};
-            let dadosH1 = {};
-
-            if (entradaAtual) {
-                const h4Query = await pool.query(`SELECT hora, valor FROM entradas_h4 WHERE entrada_id = $1`, [entradaAtual.id]);
-                h4Query.rows.forEach(r => dadosH4[`h4_${r.hora}`] = r.valor);
-
-                const h1Query = await pool.query(`SELECT hora, valor FROM entradas_h1 WHERE entrada_id = $1`, [entradaAtual.id]);
-                h1Query.rows.forEach(r => dadosH1[`h1_${r.hora}`] = r.valor);
-            }
-
-            // --- MONTAGEM INTELIGENTE DOS HISTÓRICOS ---
-            // O frontend espera arrays cronológicos (Antigo -> Novo)
-            // O banco devolveu (Novo -> Antigo), então vamos inverter (.reverse)
-            
-            // Função auxiliar para filtrar valores nulos e duplicados consecutivos (opcional, mas bom para performance visual)
+            // Função auxiliar de mapeamento
             const mapHistorico = (campo) => {
                 return historico.rows
-                    .map(row => ({ data: row.data_registro, valor: row[campo] }))
-                    .filter(item => item.valor !== null) // Remove dias onde não houve registro desse timeframe
-                    .reverse(); // Coloca em ordem cronológica (Jan -> Fev)
+                    .map(row => ({
+                        data: row.data_registro,
+                        valor: row[campo] === null ? null : Number(row[campo])
+                    }))
+                    .filter(item => item.valor !== null)
+                    .reverse(); 
+            };
+
+            // Mapeia H4/H1 para formato unificado
+            const mapIntraday = (queryResult) => {
+                return queryResult.rows.map(r => {
+                    let dataIso;
+
+                    // VERIFICAÇÃO DE SEGURANÇA:
+                    if (r.data_registro instanceof Date) {
+                        // Se for objeto Data, usa toISOString
+                        dataIso = r.data_registro.toISOString().split('T')[0];
+                    } else {
+                        // Se for String (ex: "2026-01-14"), converte para texto e pega a primeira parte
+                        // Isso previne o erro "is not a function"
+                        dataIso = String(r.data_registro).split('T')[0].split(' ')[0];
+                    }
+
+                    return {
+                        data: `${dataIso} ${r.hora}:00`,
+                        valor: r.valor === null ? null : Number(r.valor)
+                    };
+                });
             };
 
             resultadoFinal.push({
                 moeda: moeda,
-                // Dados do dia atual
-                ...dadosH4,
-                ...dadosH1,
                 
-                // Históricos completos para cálculo de Ciclo e Flutuante
+                // Históricos Macro
                 historico_mn: mapHistorico('valor_mensal'),
                 historico_w1: mapHistorico('valor_semanal'),
-                historico_d1: mapHistorico('valor_diario')
+                historico_d1: mapHistorico('valor_diario'),
+
+                // NOVOS Históricos Intraday Contínuos
+                historico_h4: mapIntraday(historicoH4),
+                historico_h1: mapIntraday(historicoH1)
             });
         }
 

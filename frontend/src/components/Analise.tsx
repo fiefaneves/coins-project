@@ -184,6 +184,26 @@ const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
         if (valorAtual < valorComparado) return 'Fraqueza';
         
         return null;
+    },
+
+    "Flutuante no Sentido": (valores, time) => {
+        // 1. Calculamos o "Deve Ciclo" reutilizando a lógica existente
+        // Como estamos dentro do objeto, acessamos a função irmã pela chave
+        const getDeveCiclo = COLUNA_CALCULATORS["Deve Ciclo"];
+        const getFlutuante = COLUNA_CALCULATORS["Flutuante"];
+
+        // Segurança: se as funções não existirem, retorna null
+        if (!getDeveCiclo || !getFlutuante) return null;
+
+        const deve = getDeveCiclo(valores, time);
+        const flutuante = getFlutuante(valores, time);
+
+        // 2. Lógica de Confluência
+        if (deve === 'Força' && flutuante === 'Força') return 'Força';
+        if (deve === 'Fraqueza' && flutuante === 'Fraqueza') return 'Fraqueza';
+
+        // 3. Se divergirem (ex: Deve Força mas Flutuante Fraqueza), retorna neutro
+        return null;
     }
 
     // Futuras lógicas

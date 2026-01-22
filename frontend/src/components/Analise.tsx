@@ -4,7 +4,6 @@ import styles from '../css/Analise.module.css';
 import dashboardStyles from '../css/Dashboard.module.css'; 
 
 // --- CONFIGURAÇÕES GLOBAIS ---
-
 const ALL_COLUMNS = [
     "Ciclo Concluído", 
     "Deve Ciclo", 
@@ -30,12 +29,10 @@ const MERCADOS: Record<string, string> = {
     'USD': 'América', 'CAD': 'América'
 };
 
-// --- ALTERAÇÃO: LIMITES FIXOS UNIVERSAIS ---
 const THRESHOLD_FORCA = 0.20;
 const THRESHOLD_FRAQUEZA = -0.20;
 
 // --- HELPERS ---
-
 const toNum = (val: any) => {
     if (val === null || val === undefined || val === '') return null;
     const num = parseFloat(String(val).replace(',', '.'));
@@ -88,7 +85,6 @@ const getValoresPorTimeframe = (dadoBanco: any, time: string, dataReferencia: st
 
 // --- LÓGICA DE CICLO ---
 const calcularEstadoCiclo = (historico: PontoHistorico[]) => {
-    // Agora usa as constantes globais, ignorando qual é a moeda
     let ultimoEstado: 'Força' | 'Fraqueza' | null = null;
     let dataInicio: string | null = null;
 
@@ -108,7 +104,7 @@ const calcularEstadoCiclo = (historico: PontoHistorico[]) => {
 };
 
 // --- CALCULADORAS ---
-type CalculatorFunction = (valores: PontoHistorico[], moeda: string) => any;
+type CalculatorFunction = (valores: PontoHistorico[], time: string) => any;
 
 const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
     "Ciclo Concluído": (valores) => {
@@ -124,21 +120,70 @@ const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
         if (status === 'Fraqueza') return 'Força';
         return null;
     },
-    
-    "Flutuante": (valores) => {
-        // Remove nulos para garantir que pegamos os últimos valores reais
+
+    "Flutuante": (valores, tipoColuna = 'D1') => {
         const validos = valores.filter(v => v.valor !== null);
-        
-        // Precisa de pelo menos 2 registros para comparar
         if (validos.length < 2) return null;
 
-        const ultimo = validos[validos.length - 1].valor!;
-        const penultimo = validos[validos.length - 2].valor!;
-
-        if (ultimo > penultimo) return 'Força';
-        if (ultimo < penultimo) return 'Fraqueza';
+        const atual = validos[validos.length - 1];
+        const valorAtual = Number(atual.valor);
         
-        return null; // Se for igual, mantém neutro (vazio)
+        // Converte data atual para objeto Date (tratando string ISO)
+        const dataStr = atual.data.includes('T') ? atual.data.split('T')[0] : atual.data;
+        const dataRef = new Date(dataStr + 'T12:00:00'); // Força meio-dia para evitar fuso
+
+        let registroComparacao = null;
+
+        // 1. Lógica para MENSAL (MN)
+        // Regra: Comparar com o primeiro dia do MÊS ANTERIOR
+        if (tipoColuna.includes('Mensal') || tipoColuna === 'MN') {
+            const alvo = new Date(dataRef);
+            alvo.setMonth(alvo.getMonth() - 1); // Volta 1 mês
+            alvo.setDate(1); // Dia 1
+            
+            // Busca o primeiro registro >= 01/MêsAnterior
+            registroComparacao = validos.find(v => {
+                const d = new Date((v.data.includes('T') ? v.data.split('T')[0] : v.data) + 'T12:00:00');
+                return d >= alvo;
+            });
+        }
+        
+        // 2. Lógica para SEMANAL (W1)
+        // Regra: Comparar com a Segunda-feira da SEMANA ANTERIOR
+        else if (tipoColuna.includes('Semanal') || tipoColuna === 'W1') {
+            const alvo = new Date(dataRef);
+            const diaSemana = alvo.getDay(); // 0=Dom, 1=Seg...
+            
+            // Acha a segunda-feira atual
+            const diffSegunda = diaSemana === 0 ? -6 : 1 - diaSemana;
+            alvo.setDate(alvo.getDate() + diffSegunda);
+            
+            // Volta 7 dias para a semana anterior
+            alvo.setDate(alvo.getDate() - 7);
+
+            // Busca o primeiro registro >= Segunda da semana passada
+            registroComparacao = validos.find(v => {
+                const d = new Date((v.data.includes('T') ? v.data.split('T')[0] : v.data) + 'T12:00:00');
+                return d >= alvo;
+            });
+        }
+
+        // 3. Lógica PADRÃO (Diário, H4, H1)
+        // Regra: Comparar com o registro imediatamente anterior
+        // (Isso já resolve "Segunda vs Sexta" automaticamente, pois Sábado/Dom não existem no array 'validos')
+        else {
+            registroComparacao = validos[validos.length - 2];
+        }
+
+        // Se não achou histórico (ex: banco novo), retorna neutro
+        if (!registroComparacao) return null;
+
+        const valorComparado = Number(registroComparacao.valor);
+
+        if (valorAtual > valorComparado) return 'Força';
+        if (valorAtual < valorComparado) return 'Fraqueza';
+        
+        return null;
     }
 
     // Futuras lógicas
@@ -346,9 +391,12 @@ export function Analise({ onBack }: AnaliseProps) {
                                                         let classeEstilo = '';
 
                                                         if (valores.length > 0) {
-                                                            const rawResult = calculator ? calculator(valores, moeda) : null;
+                                                            // --- ALTERAÇÃO AQUI ---
+                                                            // Passamos 'row.label' (ou a variável que guarda o nome "Mensal (MN)") 
+                                                            // para que a função saiba qual regra de data aplicar.
+                                                            const rawResult = calculator ? calculator(valores, time) : null;
 
-                                                            if (col === "Ciclo Concluído" && rawResult) textoExibido = rawResult.status;
+                                                            if (col === "Ciclo Concluído" && rawResult) textoExibido = rawResult.status; // Se seu objeto tiver status
                                                             else textoExibido = rawResult;
 
                                                             if (textoExibido === 'Força') classeEstilo = styles.statusForca;

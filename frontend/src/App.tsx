@@ -5,6 +5,7 @@ import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { Analise } from './components/Analise';
 import './App.css';
+import axios from 'axios';
 
 // Componente Wrapper para pegar o ID da URL e passar para o DataForm
 const EditarWrapper = () => {
@@ -30,14 +31,32 @@ function App() {
           navigate('/dashboard');
       }
     } else {
-      navigate('/login');
+      if (window.location.pathname !== '/login') {
+         navigate('/login');
+      }
     }
+
+    // 2. CONFIGURAR INTERCEPTOR DO AXIOS (Para DataForm e Analise)
+    // Se qualquer requisição retornar 401 (Não autorizado) ou 403 (Proibido), faz logout.
+    const interceptor = axios.interceptors.response.use(
+        response => response,
+        error => {
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                handleLogout();
+            }
+            return Promise.reject(error);
+        }
+    );
+
+    // Limpeza do interceptor ao desmontar
+    return () => {
+        axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   const handleLogin = (novoToken: string, nome: string) => {
     localStorage.setItem('user_token', novoToken);
     localStorage.setItem('user_name', nome);
-
     setToken(novoToken);
     setUserName(nome);
     navigate('/dashboard');
@@ -118,8 +137,8 @@ function App() {
              token ? <Analise onBack={() => navigate('/dashboard')} /> : <Navigate to="/login" />
           } />
 
-          {/* Rota Padrão (Redireciona para login se não achar nada) */}
-          <Route path="*" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
+          {/* Rota Padrão */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
 
         </Routes>
       </main>

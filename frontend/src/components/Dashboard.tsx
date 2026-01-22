@@ -32,7 +32,19 @@ export function Dashboard({ onNavigate, onEdit, userNome }: DashboardProps) {
         setLoading(true);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            const response = await fetch(`${apiUrl}/api/pontos`);
+            const token = localStorage.getItem('user_token');
+            const response = await fetch(`${apiUrl}/api/pontos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            // Verifica se o token expirou
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('user_token');
+                localStorage.removeItem('user_name');
+                window.location.href = '/login'; // Força recarregamento para login
+                return;
+            }
+
             const data = await response.json();
             setPontos(data);
         } catch (error) {

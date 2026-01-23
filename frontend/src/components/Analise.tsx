@@ -174,7 +174,57 @@ const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
 
         // 3. Se divergirem (ex: Deve Força mas Flutuante Fraqueza), retorna neutro
         return null;
-    }
+    },
+
+    "Quebra de Score": (valores, time) => {
+        const getFlutuante = COLUNA_CALCULATORS["Flutuante"];
+        if (!getFlutuante) return null;
+
+        // Calcula o Flutuante AGORA (Estado Atual)
+        const estadoAtual = getFlutuante(valores, time);
+        if (!estadoAtual) return null;
+
+        let valoresAnteriores: PontoHistorico[] = [];
+
+        if (time == 'H4' || time == 'H1') {
+            // Para H4 e H1, consideramos os valores até o dia anterior
+            if (valores.length == 0) return null;
+
+            // Pega a data do último ponto
+            const ultimaDataFull = valores[valores.length - 1].data;
+            const ultimaData = ultimaDataFull.includes(' ') ? ultimaDataFull.split(' ')[0] : ultimaDataFull;
+
+            // Varre de trás para frente até achar o último ponto de data diferente
+            let indexCorte = -1;
+            for (let i = valores.length - 2; i >= 0; i--) {
+                const d = valores[i].data;
+                const dataItem = d.includes(' ') ? d.split(' ')[0] : d;
+
+                if (dataItem !== ultimaData) {
+                    indexCorte = i;
+                    break;
+                }
+            }
+
+            // Se não tem valores anteriores, retorna null
+            if (indexCorte == -1) return null;
+
+            valoresAnteriores = valores.slice(0, indexCorte + 1);
+        } else {
+            // Para MN, W1, D1, consideramos todos os valores anteriores
+            valoresAnteriores = valores.slice(0, -1);
+        }
+
+        // Calcula o Flutuante ANTES (Estado Anterior)
+        const estadoAnterior = getFlutuante(valoresAnteriores, time);
+        if (!estadoAnterior) return null;
+
+        // Verifica a inversão
+        if (estadoAnterior === 'Fraqueza' && estadoAtual === 'Força') return 'Força';
+        if (estadoAnterior === 'Força' && estadoAtual === 'Fraqueza') return 'Fraqueza';
+
+        return null;
+    },
 
     // Futuras lógicas
 };

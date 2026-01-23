@@ -71,6 +71,29 @@ O cálculo é uma comparação booleana simples entre os resultados de dois outr
 * **Badge Vermelho (Fraqueza):** O ciclo anterior sugeriu venda e o preço *já está* caindo. Sinal forte de entrada.
 * **Vazio:** O mercado está indeciso ou em transição (ex: O ciclo sugere compra, mas o preço ainda está caindo).
 
+### 2.5. Quebra de Score
+**Conceito:** Identifica o momento exato de **reversão de momentum**. É um sinal de alerta que indica que a direção da força do mercado mudou drasticamente em relação ao fechamento do período anterior.
+
+**Dependência:** Este indicador utiliza o resultado do indicador **Flutuante** para fazer seus cálculos.
+
+**Lógica de Implementação:**
+O algoritmo compara o `Status Atual` do Flutuante com o `Status Anterior`.
+
+1.  **Regra de "Status Anterior" (Diferenciada por Timeframe):**
+    * **Macro (MN, W1, D1):** Compara com o período imediatamente anterior ($t-1$).
+        * *Ex:* Se estamos em Fevereiro, compara com Janeiro.
+    * **Intraday (H4, H1):** Compara com o **último registro do DIA ANTERIOR**.
+        * *Ex:* Se estamos olhando as 20h de hoje, o sistema ignora as 16h/12h de hoje e busca como o mercado fechou ontem (última vela do dia anterior). Isso serve para identificar se a **tendência do dia** virou em relação a ontem, ignorando ruídos intra-dia.
+
+2.  **Verificação de Inversão:**
+    * Se Anterior = **FRAQUEZA** e Atual = **FORÇA** → Resultado: **FORÇA** 🟢 (Virada de Alta).
+    * Se Anterior = **FORÇA** e Atual = **FRAQUEZA** → Resultado: **FRAQUEZA** 🔴 (Virada de Baixa).
+    * Se os estados forem iguais (ex: Força $\to$ Força) ou um deles for Nulo → Resultado: **NULO** (Continuidade).
+
+**Interpretação:**
+* **H4/H1:** Se aparecer uma "Quebra de Score", significa que o dia de hoje rompeu a tendência que estava estabelecida no fechamento de ontem. É um sinal forte de mudança de direção diária.
+
+
 ## 3. Indicadores Pendentes / Em Construção
 
 Os seguintes indicadores constam na interface mas aguardam definição de regra de negócio para implementação:
@@ -82,7 +105,6 @@ Os seguintes indicadores constam na interface mas aguardam definição de regra 
 * **Mudou:** (A definir)
 * **Flutuante antes 21h:** (A definir)
 * **Ponto de Parada:** (A definir)
-* **Quebra de Score:** (A definir)
 * **Permissão:** (A definir)
 * **Não Operar:** (A definir)
 

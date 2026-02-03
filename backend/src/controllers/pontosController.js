@@ -12,6 +12,24 @@ const salvarPonto = async (req, res) => {
         const { data, moeda, mensal, semanal, diario } = req.body;
         const userId = req.userId;
 
+        // --- LÓGICA DE RESTRIÇÃO TEMPORÁRIA ---
+        const restricao = {
+            5: 'AUD', // Carlos (ID 5) registra só AUD
+            3: 'JPY', // Clovis (ID 3) registra só JPY
+            4: 'NZD'  // Luis (ID 4) registra só NZD
+        };
+
+        if (restricao[userId]) {
+            const moedaPermitida = restricao[userId];
+            if (moeda !== moedaPermitida) {
+                await client.query('ROLLBACK'); // Cancela a transação aberta
+                return res.status(403).json({ 
+                    message: `Restrição temporária: Usuário não autorizado a registrar ${moeda}. Apenas ${moedaPermitida} é permitido.` 
+                });
+            }
+        }
+        // ---------------------------------------
+
         const horaSistema = new Date().toLocaleTimeString('pt-BR', { 
             timeZone: 'America/Sao_Paulo', 
             hour12: false 

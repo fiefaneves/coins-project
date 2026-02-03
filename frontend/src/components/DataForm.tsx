@@ -28,7 +28,21 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
         return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
     };
 
-    // Função auxiliar para gerar o estado inicial (limpo)
+    // --- LÓGICA DE RESTRIÇÃO DE MOEDAS (UX) ---
+    const getMoedasPermitidas = () => {
+        const usuarioNome = localStorage.getItem('user_name')?.toLowerCase() || '';
+        
+        if (usuarioNome === 'carlos') return ['AUD'];
+        if (usuarioNome === 'clovis') return ['JPY'];
+        if (usuarioNome === 'luis') return ['NZD'];
+        
+        // Admin ou outros usuários veem todas
+        return ['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'];
+    };
+
+    const moedasDisponiveis = getMoedasPermitidas();
+
+    // Função auxiliar para gerar o estado inicial
     const getInitialState = (): FormData => ({
         data: getHojeFormatado(),
         moeda: 'AUD',
@@ -143,7 +157,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                     setFormData(currentState => ({
                         ...getInitialState(),      // Pega o template limpo
                         data: currentState.data,   // Sobrescreve com a Data que estava no form
-                        moeda: currentState.moeda  // Sobrescreve com a Moeda que estava no form
+                        moeda: moedasDisponiveis[0] // Mantém a moeda restrita correta
                     }));
 
                     // Salvar e Novo: Reseta o formulário e exibe sucesso
@@ -185,13 +199,28 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                     <div className={styles.section}>
                         <h3 className={styles.sectionTitle}>Informações Principais</h3>
                         <div className={styles.row}>
+
+                            {/* CAMPO DE MOEDA ATUALIZADO COM RESTRIÇÃO */}
                             <div className={styles.field}>
                                 <label className={styles.label}>Moeda</label>
-                                <select className={styles.select} name="moeda" value={formData.moeda} onChange={handleChange}>
-                                    {['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'].map(m => (
+                                <select 
+                                    className={styles.select} 
+                                    name="moeda" 
+                                    value={formData.moeda} 
+                                    onChange={handleChange}
+                                    // Desabilita se só houver uma opção (melhor UX)
+                                    disabled={moedasDisponiveis.length === 1 && !editingId}
+                                >
+                                    {moedasDisponiveis.map(m => (
                                         <option key={m} value={m}>{m}</option>
                                     ))}
                                 </select>
+                                {/* Feedback visual para o usuário restrito */}
+                                {moedasDisponiveis.length === 1 && (
+                                    <small style={{color: '#718096', fontSize: '0.85em', marginTop: '4px', display: 'block'}}>
+                                        Você possui permissão apenas para {moedasDisponiveis[0]}
+                                    </small>
+                                )}
                             </div>
                             <div className={styles.field}>
                                 <label className={styles.label}>Data</label>

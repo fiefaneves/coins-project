@@ -66,10 +66,11 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const [showSaveModal, setShowSaveModal] = useState(false);
 
     useEffect(() => {
-        if (!editingId && moedasDisponiveis.length > 0) {
-            setFormData(prev => ({ ...prev, moeda: moedasDisponiveis[0] }));
-        }
-    }, [moedasDisponiveis, editingId]);
+    // Verifica se não está editando, se há moedas e se a moeda atual já não é a primeira
+    if (!editingId && moedasDisponiveis.length > 0 && formData.moeda !== moedasDisponiveis[0]) {
+        setFormData(prev => ({ ...prev, moeda: moedasDisponiveis[0] }));
+    }
+}, [moedasDisponiveis, editingId, formData.moeda]); // Adicione formData.moeda aqui
 
     // Carrega dados se for Edição
     useEffect(() => {

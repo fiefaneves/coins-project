@@ -45,7 +45,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     // Função auxiliar para gerar o estado inicial
     const getInitialState = (): FormData => ({
         data: getHojeFormatado(),
-        moeda: 'AUD',
+        moeda: moedasDisponiveis[0] || 'AUD',
         mensal: '',
         semanal: '',
         diario: '',
@@ -64,6 +64,12 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
+
+    useEffect(() => {
+        if (!editingId && moedasDisponiveis.length > 0) {
+            setFormData(prev => ({ ...prev, moeda: moedasDisponiveis[0] }));
+        }
+    }, [moedasDisponiveis, editingId]);
 
     // Carrega dados se for Edição
     useEffect(() => {
@@ -127,6 +133,7 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
                 ...formData,
                 data: dataInvertida
             };
+
             const token = localStorage.getItem('user_token');
             const headers = {
                 'Authorization': `Bearer ${token}`,
@@ -169,13 +176,29 @@ export function DataForm({ editingId, onSuccess }: DataFormProps) {
 
         } catch (error: any) {
             console.error('Erro:', error);
-            if (error.response && error.response.data && error.response.data.message) {
-                setMessage(error.response.data.message);
-            } else {
-                setMessage('Erro ao enviar. Verifique se o servidor está rodando.');
-            }
             setIsError(true);
             setIsLoading(false);
+
+            if (error.response) {
+                // Se for erro 403 (Restrição de Moeda), APENAS mostra a mensagem.
+                if (error.response.status === 403) {
+                    setMessage(error.response.data.message || 'Ação não permitida para seu usuário.');
+                    return; // PARE AQUI. Não faz logout.
+                }
+
+                // Se for erro 401 (Token Vencido), aí sim desloga.
+                if (error.response.status === 401) {
+                    alert('Sessão expirada. Faça login novamente.');
+                    localStorage.removeItem('user_token');
+                    navigate('/login');
+                    return;
+                }
+
+                // Outros erros (ex: 400, 409, 500)
+                setMessage(error.response.data.message || 'Erro ao processar requisição.');
+            } else {
+                setMessage('Erro de conexão. Verifique se o servidor está rodando.');
+            }
         }
     };
 

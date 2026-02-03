@@ -10,7 +10,13 @@ const salvarPonto = async (req, res) => {
 
         // 1. Removemos 'tipo' da desestruturação
         const { data, moeda, mensal, semanal, diario } = req.body;
-        const userId = req.userId;
+        const userId = req.userId || (req.user && req.user.id) || (req.usuario && req.usuario.id); // Vem do token de autenticação;
+
+        // Se mesmo assim não achar, aí sim é erro de autenticação (401)
+        if (!userId) {
+            await client.query('ROLLBACK');
+            return res.status(401).json({ message: 'Token válido, mas ID do usuário não identificado.' });
+        }
 
         // --- LÓGICA DE RESTRIÇÃO TEMPORÁRIA ---
         const restricao = {

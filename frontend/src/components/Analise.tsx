@@ -226,6 +226,53 @@ const COLUNA_CALCULATORS: Record<string, CalculatorFunction> = {
         return null;
     },
 
+    "Construção": (valores: PontoHistorico[]) => {
+        // 1. Ignora o flutuante
+        const fechados = valores.slice(0, -1);
+        const n = fechados.length;
+
+        // Precisamos de pelo menos 3 pontos para ter 2 movimentos
+        if (n < 3) return null;
+
+        // Vamos analisar os movimentos (deltas) dos últimos pontos
+        const movimentos = [];
+        // Pegamos até 4 movimentos para trás para garantir a varredura
+        for (let i = n - 1; i > 0; i--) {
+            if (fechados[i].valor !== null && fechados[i-1].valor !== null) {
+                movimentos.push(fechados[i].valor! - fechados[i-1].valor!);
+            }
+            if (movimentos.length >= 4) break; // Limita a 4 movimentos
+        }
+
+        // Se não tiver movimentos suficientes para análise mínima
+        if (movimentos.length < 2) return null;
+
+        // --- VARREDURA DE TENDÊNCIA (Prioridade) ---
+        // Procura o primeiro par de movimentos iguais (do mais recente para o antigo)
+        
+        for (let i = 0; i < movimentos.length - 1; i++) {
+            const mAtual = movimentos[i];
+            const mAnterior = movimentos[i+1]; // O movimento logo antes dele
+
+            const isSobeAtual = mAtual > 0;
+            const isSobeAnterior = mAnterior > 0;
+
+            // Se as direções forem iguais, achamos a tendên'cia dominante mais recente!
+            if (isSobeAtual === isSobeAnterior) {
+                return isSobeAtual ? "Força" : "Fraqueza";
+            }
+        }
+
+        // --- LINHA SUJA (Fallback) ---
+        // Se o loop acima terminou, significa que NÃO existem 2 movimentos iguais consecutivos.        
+        // Só marcamos Linha Suja se tivermos pelo menos 3 ou 4 pernas alternadas para formar o zigue-zague
+        if (movimentos.length >= 3) {
+            return "Linha Suja";
+        }
+
+        return null;
+    },
+
     // Futuras lógicas
 };
 

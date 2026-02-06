@@ -36,7 +36,21 @@ Para garantir consistência em todos os cálculos, utilizamos os seguintes limia
     * Se Ciclo Concluído = **FRAQUEZA** → Deve Ciclo = **FORÇA**.
     * Se Ciclo Concluído = Nulo → Deve Ciclo = Nulo.
 
-### 2.3. Flutuante
+### 2.3. Construção
+**Conceito:** Identifica a formação estrutural da tendência, buscando **padrões de movimento** consecutivos nas velas fechadas.
+
+**Lógica de Implementação:**
+1.  **Exclusão do Flutuante:** O algoritmo ignora totalmente a vela atual (em aberto). Analisa apenas o histórico fechado.
+2.  **Varredura Reversa (Prioridade):** Analisa os movimentos (deltas entre velas) de trás para frente (do mais recente para o mais antigo).
+3.  **Regra do Par Consecutivo:**
+    * O sistema procura o **primeiro par de movimentos** que tenha a mesma direção.
+    * Se encontrar (Sobe + Sobe) → Resultado: **FORÇA**.
+    * Se encontrar (Desce + Desce) → Resultado: **FRAQUEZA**.
+    * Essa regra permite identificar a força estrutural mesmo que haja uma pequena correção no meio. Exemplo: `Sobe (antigo) -> Sobe -> Desce -> Sobe (recente)`. Ao varrer de trás para frente, o sistema identifica o par `Sobe+Sobe` anterior e define como Força.
+4.  **Regra da Linha Suja (Padrão M ou W):**
+    * Se o algoritmo analisar os últimos 4 movimentos e **não** encontrar nenhum par consecutivo (ou seja, os movimentos são perfeitamente alternados: Sobe/Desce/Sobe/Desce), o resultado é **LINHA SUJA** (Indecisão/Ruído).
+
+### 2.4. Flutuante
 **Conceito:** Indica o *momentum* imediato ou a direção da força no momento presente. É sensível ao contexto temporal (Timeframe) para comparações justas.
 
 **Lógica Geral:**
@@ -53,7 +67,7 @@ Comparação entre o `Valor Atual` e um `Valor de Referência`.
 | **Diário (D1)** | **Dia Útil Anterior** | Compara com o último registro válido disponível (`n-1`). Ignora fins de semana automaticamente. |
 | **H4 / H1** | **Vela Anterior** | Compara com o fechamento da vela imediatamente anterior (`n-1`). |
 
-### 2.4. Flutuante no Sentido
+### 2.5. Flutuante no Sentido
 **Conceito:** É um indicador de confirmação (confluência). Ele verifica se a *expectativa matemática* de reversão ("Deve Ciclo") está alinhada com a *realidade imediata* do preço ("Flutuante"). Quando ambos apontam para a mesma direção, temos um sinal técnico de alta confiabilidade.
 
 **Lógica de Implementação:**
@@ -71,7 +85,7 @@ O cálculo é uma comparação booleana simples entre os resultados de dois outr
 * **Badge Vermelho (Fraqueza):** O ciclo anterior sugeriu venda e o preço *já está* caindo. Sinal forte de entrada.
 * **Vazio:** O mercado está indeciso ou em transição (ex: O ciclo sugere compra, mas o preço ainda está caindo).
 
-### 2.5. Quebra de Score
+### 2.6. Quebra de Score
 **Conceito:** Identifica o momento exato de **reversão de momentum**. É um sinal de alerta que indica que a direção da força do mercado mudou drasticamente em relação ao fechamento do período anterior.
 
 **Dependência:** Este indicador utiliza o resultado do indicador **Flutuante** para fazer seus cálculos.
@@ -98,7 +112,6 @@ O algoritmo compara o `Status Atual` do Flutuante com o `Status Anterior`.
 
 Os seguintes indicadores constam na interface mas aguardam definição de regra de negócio para implementação:
 
-* **Construção:** (A definir)
 * **Acúmulo:** (A definir)
 * **Chão Acúmulo:** (A definir)
 * **Teto Acúmulo:** (A definir)
